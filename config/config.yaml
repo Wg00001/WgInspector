@@ -1,0 +1,30 @@
+
+target_db: #巡检目标数据库示例
+  - host: "localhost"
+    port: 3306
+    user: "root"
+    password: "password"
+    dbname: "single_dbname"   # 单个库
+    charset: "utf8mb4"
+    timeout: 30
+  - host: "localhost"
+    port: 3306
+    user: "root"
+    password: "password"
+    dbname:                   # 多个库 - 数组形式
+      - "db1"
+      - "db2"
+    charset: "utf8mb4"
+    timeout: 30
+
+result_db:
+  host: "localhost"       # 数据库主机名
+  port: 3306              # 数据库端口号
+  user: "root"            # 数据库用户名
+  password: "password"    # 数据库密码
+  dbname: "result_db"     # 数据库名称
+  charset: "utf8mb4"      # 数据库字符集
+  timeout: 30             # 连接超时（秒）
+
+log_dir: "/var/log/app"    # 日志目录
+feishu_url: "https://feishu.example.com/webhook"  # 飞书 Webhook URL

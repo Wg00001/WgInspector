@@ -11,6 +11,7 @@ type Reader interface {
 	ReadConfig() error
 	SaveIntoConfig()
 	Watch() //todo
+	//todo Save()
 }
 
 type Parser interface {

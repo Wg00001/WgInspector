@@ -3,6 +3,7 @@ package config
 import (
 	"PgInspector/entities/config"
 	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -13,7 +14,7 @@ import (
  */
 
 var (
-	Meta  = config.ConfigMeta{}
+	Meta  = config.ConfigMeta{Insp: config.NewTree()}
 	Index = config.ConfigIndex{
 		Default:   &config.DefaultConfig{},
 		Task:      make(map[config.Identity]*config.TaskConfig),
@@ -24,8 +25,7 @@ var (
 		AgentTask: make(map[config.Identity]*config.AgentTaskConfig),
 		KBase:     make(map[config.Identity]*config.KnowledgeBaseConfig),
 	}
-	Insp = config.NewTree()
-	mu   sync.RWMutex
+	mu sync.RWMutex
 )
 
 func RLock() {
@@ -39,13 +39,13 @@ func RUnlock() {
 func GetInsp(path config.Identity) *config.InspNode {
 	mu.RLock()
 	defer mu.RUnlock()
-	return Insp.GetNode(path.Str())
+	return Meta.Insp.GetNode(path.Str())
 }
 
 func GetAllInsp() []*config.InspNode {
 	mu.RLock()
 	defer mu.RUnlock()
-	return Insp.AllInsp
+	return Meta.Insp.AllInsp
 }
 
 type ParamType interface {
@@ -70,7 +70,7 @@ func SetConfigMeta(c config.ConfigMeta) error {
 }
 
 func SetInsp(tree *config.InspTree) error {
-	Insp = tree
+	Meta.Insp = tree
 	return nil
 }
 
@@ -104,7 +104,7 @@ func Add[T ParamType](cfg T) error {
 		Meta.Agent = t
 		Index.Agent = &Meta.Agent
 	case *config.InspTree:
-		Insp = t
+		Meta.Insp = t
 	case config.AgentTaskConfig:
 		Meta.AgentTasks = append(Meta.AgentTasks, t)
 		Index.AgentTask[t.Identity] = &Meta.AgentTasks[len(Meta.AgentTasks)-1]
@@ -138,11 +138,9 @@ func Del[T ParamType](cfg T) error {
 	case config.AgentConfig:
 		Index.Agent = nil
 		Meta.Agent = config.AgentConfig{}
-	case config.InspTree:
+	case config.InspTree, *config.InspTree:
 		//todo：增删某个命令
-		Insp = nil // 指针类型置空
-	case *config.InspTree:
-		Insp = nil // 指针类型置空
+		Meta.Insp = nil // 指针类型置空
 	case config.AgentTaskConfig:
 		delete(Index.AgentTask, t.Identity)
 		removeFromSlice[config.AgentTaskConfig](Meta.AgentTasks, t)
@@ -164,7 +162,7 @@ func removeFromSlice[T config.Id](slice []T, cfg T) {
 	}
 }
 
-func Get[T GetType](target T) (res T, err error) {
+func Get[T ParamType](target T) (res *T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("config get fail: params = %#v", res)
@@ -174,8 +172,8 @@ func Get[T GetType](target T) (res T, err error) {
 	defer mu.RUnlock()
 
 	switch t := any(target).(type) {
-	case *config.DefaultConfig:
-		res = any(Index.Default).(T)
+	case config.DefaultConfig:
+		res = any(&Index.Default).(*T)
 	case *config.DBConfig:
 		//todo: 测试是否可行
 		//if db, ok := Index.DB[t.GetIdentity]; ok {
@@ -184,38 +182,38 @@ func Get[T GetType](target T) (res T, err error) {
 		//	err = fmt.Errorf("DB config %q not found", t.GetIdentity)
 		//}
 		index, err := getFromIndex(Index.DB, t.Identity)
-		return any(index).(T), err
+		return any(&index).(*T), err
 	case *config.TaskConfig:
 		if task, ok := Index.Task[t.Identity]; ok {
-			res = any(task).(T)
+			res = any(&task).(*T)
 		} else {
 			err = fmt.Errorf("task config %q not found", t.Identity)
 		}
 	case *config.LogConfig:
 		if log, ok := Index.Log[t.Identity]; ok {
-			res = any(log).(T)
+			res = any(&log).(*T)
 		} else {
 			err = fmt.Errorf("log config %q not found", t.Identity)
 		}
 	case *config.AlertConfig:
 		if alert, ok := Index.Alert[t.Identity]; ok {
-			res = any(alert).(T)
+			res = any(&alert).(*T)
 		} else {
 			err = fmt.Errorf("alert config %q not found", t.Identity)
 		}
 	case *config.AgentConfig:
-		res = any(Index.Agent).(T)
+		res = any(&Index.Agent).(*T)
 	case *config.InspTree:
-		res = any(Insp).(T) // 直接返回指针
+		res = any(&Meta.Insp).(*T) // 直接返回指针
 	case *config.AgentTaskConfig:
 		if task, ok := Index.AgentTask[t.Identity]; ok {
-			res = any(task).(T)
+			res = any(&task).(*T)
 		} else {
 			err = fmt.Errorf("agent task %q not found", t.Identity)
 		}
 	case *config.KnowledgeBaseConfig:
 		if kb, ok := Index.KBase[t.Identity]; ok {
-			res = any(kb).(T)
+			res = any(&kb).(*T)
 		} else {
 			err = fmt.Errorf("knowledge base %q not found", t.Identity)
 		}
@@ -231,4 +229,26 @@ func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) 
 	} else {
 		return res, fmt.Errorf("config center: index not exist: %s in %s ", id.GetIdentity(), index)
 	}
+}
+
+func Update[T ParamType](target T) error {
+	origin, err := Get(target)
+	if err != nil {
+		return err
+	}
+	//todo：test
+	getPtrValue := reflect.ValueOf(origin)
+	if getPtrValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("config center update fail: get value not prt")
+	}
+
+	targetValue := reflect.ValueOf(target)
+	getElemValue := getPtrValue.Elem()
+
+	if !targetValue.Type().AssignableTo(getElemValue.Type()) {
+		return fmt.Errorf("config center update fail: type mismatch")
+	}
+
+	getElemValue.Set(targetValue)
+	return nil
 }

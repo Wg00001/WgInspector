@@ -6,7 +6,7 @@ package client
  * @date 2025/3/17
  */
 
-type ConfigManager interface {
-	Load()
-	Save()
+type Client interface {
+	Init(url string) (Client, error)
+	UpdateCallback(configType string, data any) error
 }

@@ -10,11 +10,18 @@ import (
  * @date 2025/1/19
  */
 
+type DefaultConfig struct {
+	ConfigReader string
+	ConfigParser string
+	ClientDriver string
+	ClientURL    string
+}
+
 type ConfigMeta struct {
 	CommonConfigGroup
 	TaskConfigGroup
 	AgentConfigGroup
-	*InspTree
+	Insp *InspTree
 }
 
 type CommonConfigGroup struct {
@@ -49,12 +56,6 @@ type ConfigIndex struct {
 }
 
 type Identity string
-
-type DefaultConfig struct {
-	DefaultDriver     string
-	DefaultLogLevel   Identity
-	DefaultAlertLevel Identity
-}
 
 type DBConfig struct {
 	Identity

@@ -42,6 +42,31 @@ func SendUpdate[T client.ConfigType](data T) error {
 	return cli.UpdateCallback(name, data)
 }
 
+func SendFullUpdate[T client.ConfigType](data T) error {
+	config.RLock()
+	defer config.RUnlock()
+	switch any(data).(type) {
+	case config2.DBConfig:
+		return cli.UpdateCallback(client.ConfigTypeDB, GetConfigMeta().DBs)
+	case config2.LogConfig:
+		return cli.UpdateCallback(client.ConfigTypeLog, GetConfigMeta().Logs)
+	case config2.AlertConfig:
+		return cli.UpdateCallback(client.ConfigTypeAlert, GetConfigMeta().Alerts)
+	case config2.TaskConfig:
+		return cli.UpdateCallback(client.ConfigTypeTask, GetConfigMeta().Tasks)
+	case config2.AgentConfig:
+		return cli.UpdateCallback(client.ConfigTypeAgent, GetConfigMeta().Agent)
+	case config2.AgentTaskConfig:
+		return cli.UpdateCallback(client.ConfigTypeAgentTask, GetConfigMeta().AgentTasks)
+	case config2.KnowledgeBaseConfig:
+		return cli.UpdateCallback(client.ConfigTypeKBase, GetConfigMeta().KnowledgeBases)
+	case config2.InspTree:
+		return cli.UpdateCallback(client.ConfigTypeInspector, GetConfigMeta().Insp)
+	default:
+		return fmt.Errorf("unknown config type: %T", data)
+	}
+}
+
 func UpdateOrNew[T client.ConfigType](newConfig T) error {
 	return nil
 }

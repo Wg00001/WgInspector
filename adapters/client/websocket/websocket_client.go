@@ -109,50 +109,58 @@ func (c ClientWebSocket) handleConfigUpdate(configType string, configData json.R
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		//todo: SendUpdate
-		client2.SendUpdate(any(res).(config.DBConfig))
-		return config2.Update(any(res).(config.DBConfig))
+		return update(any(res).(config.DBConfig))
 	case client.ConfigTypeLog:
 		var res config.LogConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.LogConfig))
+		return update(any(res).(config.LogConfig))
 	case client.ConfigTypeAlert:
 		var res config.AlertConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.AlertConfig))
+		return update(any(res).(config.AlertConfig))
 
 	case client.ConfigTypeTask:
 		var res config.TaskConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.TaskConfig))
+		return update(any(res).(config.TaskConfig))
 
 	case client.ConfigTypeAgent:
 		var res config.AgentConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.AgentConfig))
+		return update(any(res).(config.AgentConfig))
 
 	case client.ConfigTypeAgentTask:
 		var res config.AgentTaskConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.AgentTaskConfig))
+		return update(any(res).(config.AgentTaskConfig))
 
 	case client.ConfigTypeKBase:
 		var res config.KnowledgeBaseConfig
 		if err := json.Unmarshal(configData, &res); err != nil {
 			return
 		}
-		return config2.Update(any(res).(config.KnowledgeBaseConfig))
+		return update(any(res).(config.KnowledgeBaseConfig))
 	default:
 		return fmt.Errorf("client - websocket: handle config update fail: type of configData not suppose: %s", configType)
 	}
+}
+
+func update[T client.ConfigType](data T) error {
+	err := config2.Update(data)
+	if err != nil {
+		return err
+	}
+	//todo: test
+	//return client2.SendUpdate(data)
+	return client2.SendFullUpdate(data)
 }

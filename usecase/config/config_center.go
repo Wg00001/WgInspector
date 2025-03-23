@@ -1,6 +1,7 @@
 package config
 
 import (
+	"PgInspector/entities/client"
 	"PgInspector/entities/config"
 	"fmt"
 	"reflect"
@@ -231,7 +232,7 @@ func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) 
 	}
 }
 
-func Update[T ParamType](target T) error {
+func Update[T client.ConfigType](target T) error {
 	origin, err := Get(target)
 	if err != nil {
 		return err

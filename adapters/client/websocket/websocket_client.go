@@ -10,7 +10,10 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"net/http"
+	"net/url"
 	"reflect"
+	"strings"
 )
 
 /**
@@ -24,101 +27,136 @@ func init() {
 }
 
 const (
-	clientActionGet    = "config_get"
-	clientActionSave   = "config_save"
-	clientActionDelete = "config_delete"
+	clientActionGet  = "config_get"
+	clientActionSave = "config_save"
 )
 
 type ClientWebSocket struct {
-	conn     *websocket.Conn
+	server    *http.Server
+	conns     map[*websocket.Conn]bool
+	parsedURL *url.URL
+
 	callback func(string, interface{})
+}
+
+type MessageStruct struct {
+	Action     string          `json:"action"`
+	ConfigType string          `json:"config_type,omitempty"`
+	ConfigData json.RawMessage `json:"config_data,omitempty"`
 }
 
 var _ client.Client = (*ClientWebSocket)(nil)
 
-func (c ClientWebSocket) Init(url string) (_ client.Client, err error) {
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("连接失败: %w", err)
+func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
 	}
-	c.conn = conn
+	c.conns = make(map[*websocket.Conn]bool)
+	// 解析 URL 获取监听地址和端口
+	c.parsedURL, err = url.Parse(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("URL 解析失败: %w", err)
+	}
+	if !strings.HasPrefix(c.parsedURL.Path, "/") {
+		c.parsedURL.Path = "/" + c.parsedURL.Path
+	}
+	c.server = &http.Server{
+		Addr: c.parsedURL.Host,
+	}
 
-	//启动消息监听协程
-	//go c.Listen()
+	// 设置 HTTP 路由和处理函数
+	http.HandleFunc(c.parsedURL.Path, func(w http.ResponseWriter, r *http.Request) {
+		// 升级 HTTP 连接为 WebSocket
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			fmt.Printf("WebSocket 升级失败: %v\n", err)
+			return
+		}
+
+		// 保存连接
+		c.conns[conn] = true
+
+		//进行处理
+		go func() {
+			defer conn.Close()
+			for {
+				_, message, err := conn.ReadMessage()
+				if err != nil {
+					// 判断错误是否为 context 取消导致的正常关闭
+					if websocket.IsUnexpectedCloseError(err) {
+						log.Printf("连接异常关闭: %v", err)
+					} else {
+						log.Printf("读取消息错误: %v", err)
+					}
+					break // 退出循环，结束监听
+				}
+
+				// 解析和处理消息
+				msg := MessageStruct{}
+				if err := json.Unmarshal(message, &msg); err != nil {
+					log.Printf("消息解析失败: %v", err)
+					continue
+				}
+
+				switch msg.Action {
+				case clientActionGet:
+					if err = c.handleConfigGet(conn); err != nil {
+						log.Println("client - websocket: config_get handle err: " + err.Error())
+					}
+				case clientActionSave:
+					if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
+						log.Println("client - websocket: config_update handle err: " + err.Error())
+					}
+				default:
+					log.Printf("client - websocket: 未知操作类型: %s\n", msg.Action)
+				}
+			}
+		}()
+	})
 
 	return c, nil
 }
 
 func (c ClientWebSocket) Close() error {
-	return c.conn.Close()
+	return c.server.Close()
 }
 
 // UpdateCallback 服务端向客户端发送配置更新
 func (c ClientWebSocket) UpdateCallback(configType string, data any) error {
-	fmt.Println(1)
-	if err := c.conn.WriteJSON(struct {
+	marshal, err := json.Marshal(struct {
 		Type string      `json:"type"`
 		Data interface{} `json:"data"`
 	}{
 		Type: configType,
 		Data: data,
-	}); err != nil {
-		return fmt.Errorf("client - websocket: 发送失败: %w", err)
+	})
+	if err != nil {
+		return err
+	}
+	for conn, ok := range c.conns {
+		if ok {
+			err = conn.WriteMessage(websocket.TextMessage, marshal)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
-func (c ClientWebSocket) Listen(ctx context.Context) {
-	defer c.conn.Close()
-
-	// 启动协程监听 context 取消事件
+func (c ClientWebSocket) Listen(context.Context) {
+	// 启动 HTTP 服务端（异步）
 	go func() {
-		<-ctx.Done()
-		c.conn.Close() // 主动关闭连接，触发 ReadMessage 返回错误
+		if err := c.server.ListenAndServe(); err != nil {
+			log.Printf("client: server Listen fail: %v\n", err)
+		}
 	}()
 
-	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			// 判断错误是否为 context 取消导致的正常关闭
-			if ctx.Err() != nil {
-				log.Printf("连接正常关闭: %v", ctx.Err())
-			} else if websocket.IsUnexpectedCloseError(err) {
-				log.Printf("连接异常关闭: %v", err)
-			} else {
-				log.Printf("读取消息错误: %v", err)
-			}
-			break // 退出循环，结束监听
-		}
-
-		// 解析和处理消息（原有逻辑）
-		var msg struct {
-			Action     string          `json:"action"`
-			ConfigType string          `json:"config_type,omitempty"`
-			ConfigData json.RawMessage `json:"config_data,omitempty"`
-		}
-		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("消息解析失败: %v", err)
-			continue
-		}
-
-		switch msg.Action {
-		case clientActionGet:
-			if err = c.handleConfigGet(); err != nil {
-				log.Println("client - websocket: config_get handle err: " + err.Error())
-			}
-		case clientActionSave:
-			if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
-				log.Println("client - websocket: config_update handle err: " + err.Error())
-			}
-		default:
-			log.Printf("client - websocket: 未知操作类型: %s\n", msg.Action)
-		}
-	}
 }
-func (c ClientWebSocket) handleConfigGet() error {
+
+func (c ClientWebSocket) handleConfigGet(conn *websocket.Conn) error {
 	mt := client2.GetConfigMeta()
-	return c.conn.WriteJSON(mt)
+	return conn.WriteJSON(mt)
 }
 
 func parseJson[T config.ConfigType](configData json.RawMessage) (T, error) {

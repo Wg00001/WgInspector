@@ -14,6 +14,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func TestClientWebsocketStart(t *testing.T) {
+	err := client.Use(config.DefaultConfig{
+		ClientDriver: "websocket",
+		ClientURL:    "ws://127.0.0.1:9999",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeFunc := client.Listen(context.Background())
+	defer closeFunc()
+	select {}
+}
+
 // 测试ClientWebSocket的Init方法
 func TestClientWebSocket_Init(t *testing.T) {
 	// 创建测试WebSocket服务器

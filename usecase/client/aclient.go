@@ -6,6 +6,7 @@ import (
 	"PgInspector/usecase/config"
 	"context"
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -26,7 +27,8 @@ var (
 )
 
 func Listen(ctx context.Context) func() error {
-	go cli.Listen(ctx)
+	cli.Listen(ctx)
+	log.Println("client: server start Listen...")
 	return cli.Close
 }
 

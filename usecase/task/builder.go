@@ -30,7 +30,7 @@ func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
 		Inspects: []*config.InspNode{},
 	}
 	for _, val := range taskCfg.TargetDB {
-		dbcfg, err := config2.Get[*config.DBConfig](&config.DBConfig{Identity: val})
+		dbcfg, err := config2.Get[config.DBConfig](config.DBConfig{Identity: val})
 		if err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ import (
 	"PgInspector/entities/client"
 	config2 "PgInspector/entities/config"
 	"PgInspector/usecase/config"
+	"context"
 	"fmt"
 	"sync"
 )
@@ -24,50 +25,54 @@ var (
 	mu  sync.Mutex
 )
 
+func Listen(ctx context.Context) func() error {
+	go cli.Listen(ctx)
+	return cli.Close
+}
+
 func Register(client client.Client) error {
 	mu.Lock()
 	defer mu.Unlock()
-	if cli != nil {
-		return fmt.Errorf("client has been exist")
-	}
+	//if cli != nil {
+	//	return fmt.Errorf("client has been exist")
+	//}
 	cli = client
 	return nil
 }
 
-func SendUpdate[T client.ConfigType](data T) error {
-	name, err := client.GetConfigTypeName(&data)
+func SendUpdate[T config2.ConfigType](data T) error {
+	name, err := config2.GetConfigTypeName(&data)
 	if err != nil {
 		return err
 	}
 	return cli.UpdateCallback(name, data)
 }
 
-func SendFullUpdate[T client.ConfigType](data T) error {
-	config.RLock()
-	defer config.RUnlock()
+func GetMetaOfType[T config2.ConfigType](data T) error {
+	meta := GetConfigMeta()
 	switch any(data).(type) {
 	case config2.DBConfig:
-		return cli.UpdateCallback(client.ConfigTypeDB, GetConfigMeta().DBs)
+		return cli.UpdateCallback(config2.TypeDB, meta.DBs)
 	case config2.LogConfig:
-		return cli.UpdateCallback(client.ConfigTypeLog, GetConfigMeta().Logs)
+		return cli.UpdateCallback(config2.TypeLog, GetConfigMeta().Logs)
 	case config2.AlertConfig:
-		return cli.UpdateCallback(client.ConfigTypeAlert, GetConfigMeta().Alerts)
+		return cli.UpdateCallback(config2.TypeAlert, GetConfigMeta().Alerts)
 	case config2.TaskConfig:
-		return cli.UpdateCallback(client.ConfigTypeTask, GetConfigMeta().Tasks)
+		return cli.UpdateCallback(config2.TypeTask, GetConfigMeta().Tasks)
 	case config2.AgentConfig:
-		return cli.UpdateCallback(client.ConfigTypeAgent, GetConfigMeta().Agent)
+		return cli.UpdateCallback(config2.TypeAgent, GetConfigMeta().Agent)
 	case config2.AgentTaskConfig:
-		return cli.UpdateCallback(client.ConfigTypeAgentTask, GetConfigMeta().AgentTasks)
+		return cli.UpdateCallback(config2.TypeAgentTask, GetConfigMeta().AgentTasks)
 	case config2.KnowledgeBaseConfig:
-		return cli.UpdateCallback(client.ConfigTypeKBase, GetConfigMeta().KnowledgeBases)
+		return cli.UpdateCallback(config2.TypeKBase, GetConfigMeta().KnowledgeBases)
 	case config2.InspTree:
-		return cli.UpdateCallback(client.ConfigTypeInspector, GetConfigMeta().Insp)
+		return cli.UpdateCallback(config2.TypeInspector, GetConfigMeta().Insp)
 	default:
 		return fmt.Errorf("unknown config type: %T", data)
 	}
 }
 
-func UpdateOrNew[T client.ConfigType](newConfig T) error {
+func UpdateOrNew[T config2.ConfigType](newConfig T) error {
 	return nil
 }
 

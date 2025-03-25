@@ -5,10 +5,12 @@ import (
 	"PgInspector/entities/config"
 	client2 "PgInspector/usecase/client"
 	config2 "PgInspector/usecase/config"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"reflect"
 )
 
 /**
@@ -17,9 +19,14 @@ import (
  * @date 2025/3/22
  */
 
+func init() {
+	client2.RegisterDriver("websocket", ClientWebSocket{})
+}
+
 const (
 	clientActionGet    = "config_get"
-	clientActionUpdate = "config_update"
+	clientActionSave   = "config_save"
+	clientActionDelete = "config_delete"
 )
 
 type ClientWebSocket struct {
@@ -37,13 +44,18 @@ func (c ClientWebSocket) Init(url string) (_ client.Client, err error) {
 	c.conn = conn
 
 	//启动消息监听协程
-	go c.Listen()
+	//go c.Listen()
 
 	return c, nil
 }
 
+func (c ClientWebSocket) Close() error {
+	return c.conn.Close()
+}
+
 // UpdateCallback 服务端向客户端发送配置更新
 func (c ClientWebSocket) UpdateCallback(configType string, data any) error {
+	fmt.Println(1)
 	if err := c.conn.WriteJSON(struct {
 		Type string      `json:"type"`
 		Data interface{} `json:"data"`
@@ -56,19 +68,30 @@ func (c ClientWebSocket) UpdateCallback(configType string, data any) error {
 	return nil
 }
 
-func (c ClientWebSocket) Listen() {
+func (c ClientWebSocket) Listen(ctx context.Context) {
 	defer c.conn.Close()
+
+	// 启动协程监听 context 取消事件
+	go func() {
+		<-ctx.Done()
+		c.conn.Close() // 主动关闭连接，触发 ReadMessage 返回错误
+	}()
 
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err) {
+			// 判断错误是否为 context 取消导致的正常关闭
+			if ctx.Err() != nil {
+				log.Printf("连接正常关闭: %v", ctx.Err())
+			} else if websocket.IsUnexpectedCloseError(err) {
 				log.Printf("连接异常关闭: %v", err)
+			} else {
+				log.Printf("读取消息错误: %v", err)
 			}
-			break
+			break // 退出循环，结束监听
 		}
 
-		// 解析基础消息结构
+		// 解析和处理消息（原有逻辑）
 		var msg struct {
 			Action     string          `json:"action"`
 			ConfigType string          `json:"config_type,omitempty"`
@@ -81,86 +104,62 @@ func (c ClientWebSocket) Listen() {
 
 		switch msg.Action {
 		case clientActionGet:
-			err := c.handleConfigGet()
-			if err != nil {
+			if err = c.handleConfigGet(); err != nil {
 				log.Println("client - websocket: config_get handle err: " + err.Error())
 			}
-		case clientActionUpdate:
-			err := c.handleConfigUpdate(msg.ConfigType, msg.ConfigData)
-			if err != nil {
+		case clientActionSave:
+			if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
 				log.Println("client - websocket: config_update handle err: " + err.Error())
 			}
 		default:
-			log.Printf("client - websocket: 未知操作类型: %s", msg.Action)
+			log.Printf("client - websocket: 未知操作类型: %s\n", msg.Action)
 		}
 	}
 }
-
 func (c ClientWebSocket) handleConfigGet() error {
-	return c.conn.WriteJSON(client2.GetConfigMeta())
+	mt := client2.GetConfigMeta()
+	return c.conn.WriteJSON(mt)
 }
 
-// todo: 测试
+func parseJson[T config.ConfigType](configData json.RawMessage) (T, error) {
+	var res T
+	err := json.Unmarshal(configData, &res)
+	if err != nil {
+		return res, fmt.Errorf("client - json parse fail: type %s, data: %v", reflect.TypeOf(res), configData)
+	}
+	return res, nil
+}
+
 // 客户端向服务端发送配置更新
-func (c ClientWebSocket) handleConfigUpdate(configType string, configData json.RawMessage) (err error) {
+func (c ClientWebSocket) handleConfigSave(configType string, configData json.RawMessage) (err error) {
+	//cfg, err := jsonParse(configType, configData)
 	switch configType {
-	case client.ConfigTypeDB:
-		var res config.DBConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.DBConfig))
-	case client.ConfigTypeLog:
-		var res config.LogConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.LogConfig))
-	case client.ConfigTypeAlert:
-		var res config.AlertConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.AlertConfig))
-
-	case client.ConfigTypeTask:
-		var res config.TaskConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.TaskConfig))
-
-	case client.ConfigTypeAgent:
-		var res config.AgentConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.AgentConfig))
-
-	case client.ConfigTypeAgentTask:
-		var res config.AgentTaskConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.AgentTaskConfig))
-
-	case client.ConfigTypeKBase:
-		var res config.KnowledgeBaseConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return update(any(res).(config.KnowledgeBaseConfig))
+	case config.TypeDB:
+		return save(parseJson[config.DBConfig](configData))
+	case config.TypeLog:
+		return save(parseJson[config.LogConfig](configData))
+	case config.TypeAlert:
+		return save(parseJson[config.AlertConfig](configData))
+	case config.TypeTask:
+		return save(parseJson[config.TaskConfig](configData))
+	case config.TypeAgent:
+		return save(parseJson[config.AgentConfig](configData))
+	case config.TypeAgentTask:
+		return save(parseJson[config.AgentTaskConfig](configData))
+	case config.TypeKBase:
+		return save(parseJson[config.KnowledgeBaseConfig](configData))
 	default:
-		return fmt.Errorf("client - websocket: handle config update fail: type of configData not suppose: %s", configType)
+		return fmt.Errorf("client - websocket: handle config save fail: type of configData not suppose: %s", configType)
 	}
 }
 
-func update[T client.ConfigType](data T) error {
-	err := config2.Update(data)
+func save[T config.ConfigType](arg T, err error) error {
 	if err != nil {
 		return err
 	}
-	//todo: test
-	//return client2.SendUpdate(data)
-	return client2.SendFullUpdate(data)
+	err = config2.Save(arg)
+	if err != nil {
+		return err
+	}
+	return client2.GetMetaOfType(arg)
 }

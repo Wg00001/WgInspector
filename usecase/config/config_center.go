@@ -1,7 +1,6 @@
 package config
 
 import (
-	"PgInspector/entities/client"
 	"PgInspector/entities/config"
 	"fmt"
 	"reflect"
@@ -85,7 +84,7 @@ func Adds[T ParamType](configs ...T) (err error) {
 	return
 }
 
-func Add[T ParamType](cfg T) error {
+func Add[T config.ConfigType](cfg T) error {
 	mu.Lock()
 	defer mu.Unlock()
 	switch t := any(cfg).(type) {
@@ -163,7 +162,7 @@ func removeFromSlice[T config.Id](slice []T, cfg T) {
 	}
 }
 
-func Get[T ParamType](target T) (res *T, err error) {
+func Get[T config.ConfigType](target T) (res *T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("config get fail: params = %#v", res)
@@ -175,7 +174,7 @@ func Get[T ParamType](target T) (res *T, err error) {
 	switch t := any(target).(type) {
 	case config.DefaultConfig:
 		res = any(&Index.Default).(*T)
-	case *config.DBConfig:
+	case config.DBConfig:
 		//todo: 测试是否可行
 		//if db, ok := Index.DB[t.GetIdentity]; ok {
 		//	res = any(db).(T)
@@ -184,35 +183,35 @@ func Get[T ParamType](target T) (res *T, err error) {
 		//}
 		index, err := getFromIndex(Index.DB, t.Identity)
 		return any(&index).(*T), err
-	case *config.TaskConfig:
+	case config.TaskConfig:
 		if task, ok := Index.Task[t.Identity]; ok {
 			res = any(&task).(*T)
 		} else {
 			err = fmt.Errorf("task config %q not found", t.Identity)
 		}
-	case *config.LogConfig:
+	case config.LogConfig:
 		if log, ok := Index.Log[t.Identity]; ok {
 			res = any(&log).(*T)
 		} else {
 			err = fmt.Errorf("log config %q not found", t.Identity)
 		}
-	case *config.AlertConfig:
+	case config.AlertConfig:
 		if alert, ok := Index.Alert[t.Identity]; ok {
 			res = any(&alert).(*T)
 		} else {
 			err = fmt.Errorf("alert config %q not found", t.Identity)
 		}
-	case *config.AgentConfig:
+	case config.AgentConfig:
 		res = any(&Index.Agent).(*T)
-	case *config.InspTree:
+	case config.InspTree:
 		res = any(&Meta.Insp).(*T) // 直接返回指针
-	case *config.AgentTaskConfig:
+	case config.AgentTaskConfig:
 		if task, ok := Index.AgentTask[t.Identity]; ok {
 			res = any(&task).(*T)
 		} else {
 			err = fmt.Errorf("agent task %q not found", t.Identity)
 		}
-	case *config.KnowledgeBaseConfig:
+	case config.KnowledgeBaseConfig:
 		if kb, ok := Index.KBase[t.Identity]; ok {
 			res = any(&kb).(*T)
 		} else {
@@ -232,10 +231,11 @@ func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) 
 	}
 }
 
-func Update[T client.ConfigType](target T) error {
+// Save : get or create
+func Save[T config.ConfigType](target T) error {
 	origin, err := Get(target)
 	if err != nil {
-		return err
+		return Add(target)
 	}
 	//todo：test
 	getPtrValue := reflect.ValueOf(origin)

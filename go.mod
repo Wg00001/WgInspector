@@ -10,6 +10,7 @@ require (
 	github.com/tmc/langchaingo v0.1.13
 	github.com/wg00001/wgo-sdk v0.9.0
 	gopkg.in/yaml.v3 v3.0.1
+	go.etcd.io/bbolt v1.4.0
 )
 
 require (
@@ -29,11 +30,12 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
+	//go.etcd.io/bbolt v1.4.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
@@ -43,3 +45,8 @@ require (
 )
 
 //nhooyr.io/websocket v1.8.17 // indirect
+replace (
+    github.com/coreos/bbolt => go.etcd.io/bbolt v1.4.0
+    github.com/coreos/etcd => go.etcd.io/etcd v3.3.27+incompatible  // 替换 etcd 依赖
+    google.golang.org/grpc v1.71.0 => google.golang.org/grpc v1.26.0
+)

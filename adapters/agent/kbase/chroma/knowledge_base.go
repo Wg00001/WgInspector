@@ -69,7 +69,7 @@ func (k KBaseChroma) Init(cfg *config.KnowledgeBaseConfig) (_ agent.KnowledgeBas
 	case "openai":
 	default:
 		//agentConfig := config2.GetAgentConfig()
-		agentConfig, _ := config2.Get[*config.AgentConfig](nil)
+		agentConfig, _ := config2.Get[config.AgentConfig](config.AgentConfig{})
 		k.Efunc, err = openai.NewOpenAIEmbeddingFunction(
 			agentConfig.ApiKey,
 			func(c *openai.OpenAIClient) error {

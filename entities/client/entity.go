@@ -1,5 +1,7 @@
 package client
 
+import "context"
+
 /**
  * @description: TODO
  * @author Wg
@@ -8,5 +10,7 @@ package client
 
 type Client interface {
 	Init(url string) (Client, error)
+	Listen(ctx context.Context)
 	UpdateCallback(configType string, data any) error
+	Close() error
 }

@@ -21,6 +21,7 @@ import (
 	_ "PgInspector/adapters/alerter/default"
 	_ "PgInspector/adapters/alerter/empty"
 	_ "PgInspector/adapters/alerter/feishu"
+	_ "PgInspector/adapters/client/websocket"
 	_ "PgInspector/adapters/config/parser/yaml"
 	_ "PgInspector/adapters/config/reader/local_file"
 	_ "PgInspector/adapters/logger/default"

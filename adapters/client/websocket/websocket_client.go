@@ -27,8 +27,9 @@ func init() {
 }
 
 const (
-	clientActionGet  = "config_get"
-	clientActionSave = "config_save"
+	clientActionGet    = "config_get"
+	clientActionSave   = "config_save"
+	clientActionDelete = "config_delete"
 )
 
 type ClientWebSocket struct {
@@ -75,7 +76,7 @@ func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 
 		// 保存连接
 		c.conns[conn] = true
-
+		log.Println("websocket connected")
 		//进行处理
 		go func() {
 			defer conn.Close()
@@ -107,6 +108,8 @@ func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 					if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
 						log.Println("client - websocket: config_update handle err: " + err.Error())
 					}
+				case clientActionDelete:
+
 				default:
 					log.Printf("client - websocket: 未知操作类型: %s\n", msg.Action)
 				}

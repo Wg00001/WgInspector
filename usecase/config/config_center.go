@@ -170,57 +170,30 @@ func Get[T config.ConfigType](target T) (res *T, err error) {
 	}()
 	mu.RLock()
 	defer mu.RUnlock()
-
+	var index any
 	switch t := any(target).(type) {
 	case config.DefaultConfig:
-		res = any(&Index.Default).(*T)
+		index = Index.Default
 	case config.DBConfig:
-		//todo: 测试是否可行
-		//if db, ok := Index.DB[t.GetIdentity]; ok {
-		//	res = any(db).(T)
-		//} else {
-		//	err = fmt.Errorf("DB config %q not found", t.GetIdentity)
-		//}
-		index, err := getFromIndex(Index.DB, t.Identity)
-		return any(&index).(*T), err
+		index, err = getFromIndex(Index.DB, t.Identity)
 	case config.TaskConfig:
-		if task, ok := Index.Task[t.Identity]; ok {
-			res = any(&task).(*T)
-		} else {
-			err = fmt.Errorf("task config %q not found", t.Identity)
-		}
+		index, err = getFromIndex(Index.Task, t.Identity)
 	case config.LogConfig:
-		if log, ok := Index.Log[t.Identity]; ok {
-			res = any(&log).(*T)
-		} else {
-			err = fmt.Errorf("log config %q not found", t.Identity)
-		}
+		index, err = getFromIndex(Index.Log, t.Identity)
 	case config.AlertConfig:
-		if alert, ok := Index.Alert[t.Identity]; ok {
-			res = any(&alert).(*T)
-		} else {
-			err = fmt.Errorf("alert config %q not found", t.Identity)
-		}
+		index, err = getFromIndex(Index.Alert, t.Identity)
 	case config.AgentConfig:
-		res = any(&Index.Agent).(*T)
+		index = Index.Agent
 	case config.InspTree:
-		res = any(&Meta.Insp).(*T) // 直接返回指针
+		index = Meta.Insp // 直接返回指针
 	case config.AgentTaskConfig:
-		if task, ok := Index.AgentTask[t.Identity]; ok {
-			res = any(&task).(*T)
-		} else {
-			err = fmt.Errorf("agent task %q not found", t.Identity)
-		}
+		index, err = getFromIndex(Index.AgentTask, t.Identity)
 	case config.KnowledgeBaseConfig:
-		if kb, ok := Index.KBase[t.Identity]; ok {
-			res = any(&kb).(*T)
-		} else {
-			err = fmt.Errorf("knowledge base %q not found", t.Identity)
-		}
+		index, err = getFromIndex(Index.KBase, t.Identity)
 	default:
 		err = fmt.Errorf("unsupported config type: %T", t)
 	}
-	return
+	return (index).(*T), nil
 }
 
 func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) (T, error) {

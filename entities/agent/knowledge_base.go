@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"PgInspector/entities/config"
+	"WgInspector/entities/config"
 	"time"
 )
 

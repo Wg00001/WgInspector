@@ -1,9 +1,9 @@
 package test
 
 import (
-	"PgInspector/adapters/start"
-	"PgInspector/entities/config"
-	"PgInspector/usecase/client"
+	"WgInspector/adapters/start"
+	"WgInspector/entities/config"
+	"WgInspector/usecase/client"
 	"context"
 	"testing"
 )

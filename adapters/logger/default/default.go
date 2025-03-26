@@ -1,9 +1,9 @@
 package _default
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/entities/logger"
-	logger2 "PgInspector/usecase/logger"
+	"WgInspector/entities/config"
+	"WgInspector/entities/logger"
+	logger2 "WgInspector/usecase/logger"
 	"fmt"
 	"log"
 )

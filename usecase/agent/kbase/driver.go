@@ -1,8 +1,8 @@
 package kbase
 
 import (
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
 	"fmt"
 	"sync"
 )

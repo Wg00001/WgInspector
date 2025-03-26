@@ -1,7 +1,7 @@
 package analyzer
 
 import (
-	"PgInspector/entities/agent"
+	"WgInspector/entities/agent"
 	"fmt"
 	"log"
 	"sync"

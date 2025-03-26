@@ -1,7 +1,7 @@
 package test
 
 import (
-	"PgInspector/adapters/start"
+	"WgInspector/adapters/start"
 	"context"
 	"os"
 	"runtime"

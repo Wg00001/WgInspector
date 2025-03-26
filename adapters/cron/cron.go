@@ -1,8 +1,8 @@
 package cron
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/entities/task"
+	"WgInspector/entities/config"
+	"WgInspector/entities/task"
 	"context"
 	"fmt"
 	"github.com/go-co-op/gocron/v2"

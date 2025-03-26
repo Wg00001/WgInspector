@@ -1,8 +1,8 @@
 package websocket
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/usecase/client"
+	"WgInspector/entities/config"
+	"WgInspector/usecase/client"
 	"context"
 	"fmt"
 	"net/http"

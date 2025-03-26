@@ -1,8 +1,8 @@
 package alerter
 
 import (
-	"PgInspector/entities/alerter"
-	"PgInspector/entities/config"
+	"WgInspector/entities/alerter"
+	"WgInspector/entities/config"
 	"fmt"
 	"sync"
 )

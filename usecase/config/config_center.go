@@ -1,7 +1,7 @@
 package config
 
 import (
-	"PgInspector/entities/config"
+	"WgInspector/entities/config"
 	"fmt"
 	"reflect"
 	"sync"

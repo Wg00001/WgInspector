@@ -1,6 +1,6 @@
 package agent
 
-import "PgInspector/entities/config"
+import "WgInspector/entities/config"
 
 /**
  * @description: Ai的itf

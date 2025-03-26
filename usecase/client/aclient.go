@@ -1,9 +1,9 @@
 package client
 
 import (
-	"PgInspector/entities/client"
-	config2 "PgInspector/entities/config"
-	"PgInspector/usecase/config"
+	"WgInspector/entities/client"
+	config2 "WgInspector/entities/config"
+	"WgInspector/usecase/config"
 	"context"
 	"fmt"
 	"log"

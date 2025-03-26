@@ -1,9 +1,9 @@
 package empty
 
 import (
-	"PgInspector/entities/alerter"
-	"PgInspector/entities/config"
-	alerter2 "PgInspector/usecase/alerter"
+	"WgInspector/entities/alerter"
+	"WgInspector/entities/config"
+	alerter2 "WgInspector/usecase/alerter"
 )
 
 /**

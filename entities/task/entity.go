@@ -1,7 +1,7 @@
 package task
 
 import (
-	"PgInspector/entities/config"
+	"WgInspector/entities/config"
 	"context"
 )
 

@@ -1,8 +1,8 @@
 package logger
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/entities/logger"
+	"WgInspector/entities/config"
+	"WgInspector/entities/logger"
 	"fmt"
 	"sync"
 )

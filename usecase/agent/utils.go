@@ -1,11 +1,11 @@
 package agent
 
 import (
-	"PgInspector/entities/agent"
-	alerter2 "PgInspector/entities/alerter"
-	"PgInspector/entities/config"
-	"PgInspector/usecase/agent/analyzer"
-	"PgInspector/utils"
+	"WgInspector/entities/agent"
+	alerter2 "WgInspector/entities/alerter"
+	"WgInspector/entities/config"
+	"WgInspector/usecase/agent/analyzer"
+	"WgInspector/utils"
 	"encoding/json"
 	"fmt"
 	"github.com/wg00001/wgo-sdk/wg"

@@ -1,8 +1,8 @@
 package client
 
 import (
-	"PgInspector/entities/client"
-	"PgInspector/entities/config"
+	"WgInspector/entities/client"
+	"WgInspector/entities/config"
 	"fmt"
 	"sync"
 )

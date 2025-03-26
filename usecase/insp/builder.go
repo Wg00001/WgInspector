@@ -1,7 +1,7 @@
 package insp
 
 import (
-	"PgInspector/entities/config"
+	"WgInspector/entities/config"
 )
 
 /**

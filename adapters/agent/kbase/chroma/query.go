@@ -1,7 +1,7 @@
 package chroma
 
 import (
-	"PgInspector/entities/agent"
+	"WgInspector/entities/agent"
 	"time"
 )
 

@@ -1,8 +1,8 @@
 package local_file
 
 import (
-	"PgInspector/entities/config"
-	config2 "PgInspector/usecase/config"
+	"WgInspector/entities/config"
+	config2 "WgInspector/usecase/config"
 	"fmt"
 	"os"
 	"strings"

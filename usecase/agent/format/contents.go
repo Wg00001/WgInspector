@@ -1,7 +1,7 @@
 package format
 
 import (
-	"PgInspector/entities/logger"
+	"WgInspector/entities/logger"
 	"encoding/json"
 	"fmt"
 	"log"

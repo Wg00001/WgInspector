@@ -1,10 +1,10 @@
 package openai
 
 import (
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
-	ai2 "PgInspector/usecase/agent/analyzer"
-	"PgInspector/utils"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
+	ai2 "WgInspector/usecase/agent/analyzer"
+	"WgInspector/utils"
 	"context"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"

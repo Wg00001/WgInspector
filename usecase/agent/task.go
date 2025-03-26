@@ -1,14 +1,14 @@
 package agent
 
 import (
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
-	"PgInspector/entities/task"
-	"PgInspector/usecase/agent/analyzer"
-	"PgInspector/usecase/agent/format"
-	"PgInspector/usecase/agent/kbase"
-	"PgInspector/usecase/alerter"
-	"PgInspector/usecase/logger"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
+	"WgInspector/entities/task"
+	"WgInspector/usecase/agent/analyzer"
+	"WgInspector/usecase/agent/format"
+	"WgInspector/usecase/agent/kbase"
+	"WgInspector/usecase/alerter"
+	"WgInspector/usecase/logger"
 	"context"
 	"fmt"
 	"log"

@@ -1,8 +1,8 @@
 package client
 
 import (
-	config2 "PgInspector/entities/config"
-	"PgInspector/usecase/config"
+	config2 "WgInspector/entities/config"
+	"WgInspector/usecase/config"
 	"github.com/wg00001/wgo-sdk/wg"
 	"sort"
 )

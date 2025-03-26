@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"PgInspector/entities/logger"
+	"WgInspector/entities/logger"
 	"database/sql"
 	"fmt"
 	"strings"

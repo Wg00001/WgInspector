@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"PgInspector/entities/config"
+	"WgInspector/entities/config"
 	"time"
 )
 

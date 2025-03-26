@@ -1,14 +1,14 @@
 package task
 
 import (
-	"PgInspector/entities/alerter"
-	"PgInspector/entities/config"
-	db2 "PgInspector/entities/db"
-	"PgInspector/entities/logger"
-	"PgInspector/entities/task"
-	alerter2 "PgInspector/usecase/alerter"
-	"PgInspector/usecase/db"
-	logger2 "PgInspector/usecase/logger"
+	"WgInspector/entities/alerter"
+	"WgInspector/entities/config"
+	db2 "WgInspector/entities/db"
+	"WgInspector/entities/logger"
+	"WgInspector/entities/task"
+	alerter2 "WgInspector/usecase/alerter"
+	"WgInspector/usecase/db"
+	logger2 "WgInspector/usecase/logger"
 	"context"
 	"fmt"
 	"log"

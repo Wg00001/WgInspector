@@ -1,10 +1,10 @@
 package websocket
 
 import (
-	"PgInspector/entities/client"
-	"PgInspector/entities/config"
-	client2 "PgInspector/usecase/client"
-	config2 "PgInspector/usecase/config"
+	"WgInspector/entities/client"
+	"WgInspector/entities/config"
+	client2 "WgInspector/usecase/client"
+	config2 "WgInspector/usecase/config"
 	"context"
 	"encoding/json"
 	"fmt"

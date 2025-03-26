@@ -1,8 +1,8 @@
 package yaml
 
 import (
-	"PgInspector/entities/config"
-	insp2 "PgInspector/usecase/insp"
+	"WgInspector/entities/config"
+	insp2 "WgInspector/usecase/insp"
 	"fmt"
 	"time"
 )

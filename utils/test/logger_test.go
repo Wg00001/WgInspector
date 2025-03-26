@@ -1,9 +1,9 @@
 package test
 
 import (
-	"PgInspector/adapters/cron"
-	"PgInspector/adapters/start"
-	"PgInspector/usecase/task"
+	"WgInspector/adapters/cron"
+	"WgInspector/adapters/start"
+	"WgInspector/usecase/task"
 	"context"
 	"testing"
 )

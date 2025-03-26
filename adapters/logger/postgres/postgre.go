@@ -1,10 +1,10 @@
 package postgres
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/entities/logger"
-	"PgInspector/usecase/db"
-	logger2 "PgInspector/usecase/logger"
+	"WgInspector/entities/config"
+	"WgInspector/entities/logger"
+	"WgInspector/usecase/db"
+	logger2 "WgInspector/usecase/logger"
 	"database/sql"
 	"encoding/json"
 	"fmt"

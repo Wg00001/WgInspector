@@ -1,11 +1,11 @@
 package chroma
 
 import (
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
-	"PgInspector/usecase/agent/kbase"
-	config2 "PgInspector/usecase/config"
-	"PgInspector/utils"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
+	"WgInspector/usecase/agent/kbase"
+	config2 "WgInspector/usecase/config"
+	"WgInspector/utils"
 	"context"
 	"fmt"
 	chromago "github.com/amikos-tech/chroma-go"

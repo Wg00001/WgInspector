@@ -1,12 +1,12 @@
 package test
 
 import (
-	_ "PgInspector/adapters/agent/kbase/chroma"
-	"PgInspector/adapters/start"
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
-	agent2 "PgInspector/usecase/agent"
-	"PgInspector/usecase/agent/kbase"
+	_ "WgInspector/adapters/agent/kbase/chroma"
+	"WgInspector/adapters/start"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
+	agent2 "WgInspector/usecase/agent"
+	"WgInspector/usecase/agent/kbase"
 	"context"
 	"fmt"
 	"testing"

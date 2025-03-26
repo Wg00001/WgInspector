@@ -1,9 +1,9 @@
 package etcd
 
 import (
-	"PgInspector/adapters/config/parser/yaml"
-	"PgInspector/entities/config"
-	config2 "PgInspector/usecase/config"
+	"WgInspector/adapters/config/parser/yaml"
+	"WgInspector/entities/config"
+	config2 "WgInspector/usecase/config"
 	"context"
 	"github.com/coreos/etcd/clientv3"
 )

@@ -1,14 +1,14 @@
 package test
 
 import (
-	"PgInspector/adapters/agent/analyzer/ollama"
-	"PgInspector/adapters/cron"
-	"PgInspector/adapters/start"
-	"PgInspector/entities/agent"
-	"PgInspector/entities/config"
-	ai2 "PgInspector/usecase/agent"
-	"PgInspector/usecase/agent/analyzer"
-	config2 "PgInspector/usecase/config"
+	"WgInspector/adapters/agent/analyzer/ollama"
+	"WgInspector/adapters/cron"
+	"WgInspector/adapters/start"
+	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
+	ai2 "WgInspector/usecase/agent"
+	"WgInspector/usecase/agent/analyzer"
+	config2 "WgInspector/usecase/config"
 	"context"
 	"fmt"
 	"testing"

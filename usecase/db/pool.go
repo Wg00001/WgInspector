@@ -1,8 +1,8 @@
 package db
 
 import (
-	"PgInspector/entities/config"
-	"PgInspector/entities/db"
+	"WgInspector/entities/config"
+	"WgInspector/entities/db"
 	"fmt"
 	"sync"
 )

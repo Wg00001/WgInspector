@@ -1,10 +1,10 @@
 package yaml
 
 import (
-	"PgInspector/entities/config"
-	config2 "PgInspector/usecase/config"
-	insp2 "PgInspector/usecase/insp"
-	"PgInspector/utils"
+	"WgInspector/entities/config"
+	config2 "WgInspector/usecase/config"
+	insp2 "WgInspector/usecase/insp"
+	"WgInspector/utils"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"strings"

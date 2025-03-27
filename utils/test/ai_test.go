@@ -39,7 +39,7 @@ func TestOllamaApi(t *testing.T) {
 }
 
 func TestAiTask(t *testing.T) {
-	//start.SetConfigPath("../../app/config", "yaml")
+	//start.SetLocalConfigReaderOption("../../app/config", "yaml")
 	fmt.Println(config2.Open("yaml", map[string]string{
 		"filepath": "../../app/config",
 	}))
@@ -68,7 +68,7 @@ func TestAiTask(t *testing.T) {
 }
 
 func TestAi(t *testing.T) {
-	start.SetConfigPath("../../app/config", "yaml")
+	start.SetLocalConfigReaderOption("../../app/config", "yaml")
 	start.Init()
 	start.Run(context.TODO())
 }

@@ -59,6 +59,8 @@ type GetType interface {
 }
 
 func SetConfigMeta(c config.ConfigMeta) error {
+	mu.Lock()
+	defer mu.Unlock()
 	Adds(c.CommonConfigGroup.Alerts...)
 	Adds(c.CommonConfigGroup.DBs...)
 	Adds(c.CommonConfigGroup.Logs...)
@@ -66,10 +68,13 @@ func SetConfigMeta(c config.ConfigMeta) error {
 	Adds(c.AgentConfigGroup.Agent)
 	Adds(c.AgentConfigGroup.AgentTasks...)
 	Adds(c.AgentConfigGroup.KnowledgeBases...)
+	Adds(c.Insp)
 	return nil
 }
 
 func SetInsp(tree *config.InspTree) error {
+	mu.Lock()
+	defer mu.Unlock()
 	Meta.Insp = tree
 	return nil
 }

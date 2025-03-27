@@ -1,5 +1,9 @@
 package config
 
+import (
+	"WgInspector/utils"
+)
+
 /**
  * @description: TODO
  * @author Wg
@@ -7,7 +11,7 @@ package config
  */
 
 type Reader interface {
-	NewReader(option map[string]string) (Reader, error)
+	NewReader(option utils.Option) (Reader, error)
 	ReadConfig() error
 	SaveIntoConfig()
 	Watch() //todo

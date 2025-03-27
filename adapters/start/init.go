@@ -10,6 +10,7 @@ import (
 	"WgInspector/usecase/db"
 	"WgInspector/usecase/logger"
 	"WgInspector/usecase/task"
+	"WgInspector/utils"
 	"fmt"
 	"github.com/wg00001/wgo-sdk/wg"
 	"log"
@@ -18,12 +19,18 @@ import (
 	_ "WgInspector/adapters/agent/analyzer/default"
 	_ "WgInspector/adapters/agent/analyzer/ollama"
 	_ "WgInspector/adapters/agent/analyzer/openai"
+
 	_ "WgInspector/adapters/alerter/default"
 	_ "WgInspector/adapters/alerter/empty"
 	_ "WgInspector/adapters/alerter/feishu"
+
 	_ "WgInspector/adapters/client/websocket"
+
+	_ "WgInspector/adapters/config/parser/json"
 	_ "WgInspector/adapters/config/parser/yaml"
+	_ "WgInspector/adapters/config/reader/etcd"
 	_ "WgInspector/adapters/config/reader/local_file"
+
 	_ "WgInspector/adapters/logger/default"
 	_ "WgInspector/adapters/logger/postgres"
 )
@@ -34,13 +41,14 @@ import (
  * @date 2025/2/17
  */
 
-func Init() {
+func Init(optionFuncArr ...utils.OptionFunc) {
 	log.SetFlags(log.LstdFlags)
 
-	//config.InitConfig(config.NewReader(pConfigType, pFilePath))
-	err := config2.Open(pConfigType, map[string]string{
-		"filepath": pFilePath,
-	})
+	opt := make(utils.Option)
+	opt.With(optionFuncArr...)
+	localFileOptFunc(opt)
+
+	err := config2.Open(opt["config_reader"], opt)
 	if err != nil {
 		panic(fmt.Sprintf("config open fail: %s", err))
 	}

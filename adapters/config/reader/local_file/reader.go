@@ -1,8 +1,10 @@
 package local_file
 
 import (
+	"WgInspector/adapters/config/reader"
 	"WgInspector/entities/config"
 	config2 "WgInspector/usecase/config"
+	"WgInspector/utils"
 	"fmt"
 	"os"
 	"strings"
@@ -20,7 +22,6 @@ const (
 	optionInspName   = "inspect"
 	optionAgentName  = "agent"
 	optionTaskName   = "task"
-	optionParser     = "parser"
 )
 
 func init() {
@@ -41,24 +42,18 @@ type ConfigReaderLocalFile struct {
 
 var _ config.Reader = (*ConfigReaderLocalFile)(nil)
 
-func (c *ConfigReaderLocalFile) NewReader(option map[string]string) (_ config.Reader, err error) {
+func (c *ConfigReaderLocalFile) NewReader(option utils.Option) (_ config.Reader, err error) {
 	filepath, ok := option[optionFilepath]
 	if !ok {
 		return nil, fmt.Errorf("config reader: option deficiency - %s\n", optionFilepath)
 	}
-	configName, ok := option[optionConfigName]
-	if !ok {
-		configName = optionConfigName + ".yaml"
-	}
-	inspName, ok := option[optionInspName]
-	if !ok {
-		inspName = optionInspName + ".yaml"
-	}
+	configName := option.GetOrDefault(optionConfigName, optionConfigName+".yaml")
+	inspName := option.GetOrDefault(optionInspName, optionInspName+".yaml")
 	agentName, ok := option[optionAgentName]
 	if !ok {
 		agentName = optionAgentName + ".yaml"
 	}
-	parserDriver, ok := option[optionParser]
+	parserDriver, ok := option[reader.OptionParser]
 	if !ok {
 		parserDriver = "yaml"
 	}

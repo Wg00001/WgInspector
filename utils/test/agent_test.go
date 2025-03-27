@@ -20,13 +20,13 @@ import (
  */
 
 func TestFullAgentRAU(t *testing.T) {
-	start.SetConfigPath("../../app/config", "local_file")
+	start.SetLocalConfigReaderOption("../../app/config", "local_file")
 	start.Init()
 	start.Run(context.Background())
 }
 
 func TestAgentRAU(t *testing.T) {
-	start.SetConfigPath("../../app/config", "yaml")
+	start.SetLocalConfigReaderOption("../../app/config", "yaml")
 	start.Init()
 	//start.Run(context.Background())
 	nt := agent2.NewTask(&config.AgentTaskConfig{
@@ -60,7 +60,7 @@ func TestAgentRAU(t *testing.T) {
 }
 
 func TestKBase(t *testing.T) {
-	start.SetConfigPath("../../app/config", "yaml")
+	start.SetLocalConfigReaderOption("../../app/config", "yaml")
 	start.Init()
 
 	// 初始化测试配置
@@ -172,41 +172,6 @@ func TestKBase(t *testing.T) {
 			fmt.Println(results)
 		})
 	})
-
-	//t.Run("SimilaritySearch", func(t *testing.T) {
-	//	embedding, err := kb.Embedding("并发")
-	//	if err != nil {
-	//		return
-	//	}
-	//	// 正常相似度搜索
-	//	results, err := kb.SimilaritySearch(1, embedding)
-	//	if err != nil {
-	//		t.Fatal(err)
-	//	}
-	//
-	//	if len(results) != 1 {
-	//		t.Fatalf("Expected 1 result, got %d", len(results))
-	//	}
-	//
-	//	if results[0].GetIdentity != "doc1" {
-	//		t.Errorf("Expected doc1, got %s", results[0].GetIdentity)
-	//	}
-	//
-	//	// 错误输入测试
-	//	t.Run("InvalidInput", func(t *testing.T) {
-	//		// 空向量测试
-	//		_, err := kb.SimilaritySearch(1, nil)
-	//		if err == nil {
-	//			t.Error("Expected error for empty embedding")
-	//		}
-	//
-	//		// 维度不匹配测试（假设维度为3）
-	//		_, err = kb.SimilaritySearch(1, []float32{0.1})
-	//		if err == nil {
-	//			t.Error("Expected error for dimension mismatch")
-	//		}
-	//	})
-	//})
 
 	t.Run("Embedding", func(t *testing.T) {
 		// 正常生成测试

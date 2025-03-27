@@ -14,7 +14,7 @@ import (
  * @date 2025/3/26
  */
 func TestClientWebsocketStart(t *testing.T) {
-	start.SetConfigPath("../../app/config", "local_file")
+	start.SetLocalConfigReaderOption("../../app/config", "local_file")
 	start.Init()
 	err := client.Use(config.DefaultConfig{
 		ClientDriver: "websocket",

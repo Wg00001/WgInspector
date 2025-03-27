@@ -12,10 +12,5 @@ import (
  */
 
 func TestETCD(t *testing.T) {
-	start.Init(map[string]string{
-		"config_reader": "",
-		"":              "",
-		"":              "",
-		"":              "",
-	})
+	start.Init()
 }

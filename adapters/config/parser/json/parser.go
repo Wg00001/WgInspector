@@ -108,3 +108,7 @@ func (c ConfigJsonParser) ParseAgent(bytes []byte) (res config.AgentConfigGroup,
 	}
 	return
 }
+
+func (c ConfigJsonParser) Encode(arg any) ([]byte, error) {
+	return json.Marshal(arg)
+}

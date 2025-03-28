@@ -89,7 +89,7 @@ func (c *ConfigReaderLocalFile) ReadConfig() (err error) {
 	if err != nil {
 		return err
 	}
-	c.insp, err = c.parser.ParseInspector(file)
+	c.meta.Insp, err = c.parser.ParseInspector(file)
 
 	file, err = os.ReadFile(c.FilePath + c.TaskName)
 	if err != nil {
@@ -102,12 +102,11 @@ func (c *ConfigReaderLocalFile) ReadConfig() (err error) {
 		return err
 	}
 	c.meta.AgentConfigGroup, err = c.parser.ParseAgent(file)
-	return
+	return config2.SetConfigMeta(c.meta)
 }
 
-func (c *ConfigReaderLocalFile) SaveIntoConfig() {
-	config2.SetConfigMeta(c.meta)
-	config2.SetInsp(c.insp)
+func (c *ConfigReaderLocalFile) SaveConfig(string) error {
+	return nil
 }
 
 func (c *ConfigReaderLocalFile) Watch() {

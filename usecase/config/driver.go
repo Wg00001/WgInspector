@@ -27,7 +27,7 @@ func Open(driverName string, option map[string]string) error {
 	if err != nil {
 		return err
 	}
-	reader.SaveIntoConfig()
+	//reader.SaveConfig()
 	log.Println("config initiated...")
 	return nil
 }

@@ -259,3 +259,6 @@ func (c *ConfigYamlParser) ParseAgent(file []byte) (_ config.AgentConfigGroup, e
 		KnowledgeBases: ayaml.KBaseConfig,
 	}, nil
 }
+func (c *ConfigYamlParser) Encode(arg any) ([]byte, error) {
+	return nil, nil
+}

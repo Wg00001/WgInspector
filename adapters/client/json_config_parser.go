@@ -12,17 +12,6 @@ import (
  * @date 2025/3/22
  */
 
-func ParseJsonConfig2[T config.ParamType](configType string, configData json.RawMessage) (_ T) {
-	switch configType {
-	case config2.TypeDB:
-		var res config2.DBConfig
-		if err := json.Unmarshal(configData, &res); err != nil {
-			return
-		}
-		return any(res).(config2.DBConfig)
-	}
-}
-
 func ParseJsonConfig[T config.ParamType](configType string, configData json.RawMessage) (_ T, err error) {
 	switch configType {
 	case config2.TypeDB:

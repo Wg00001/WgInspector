@@ -53,35 +53,25 @@ type ParamType interface {
 		config.AgentConfig | config.AgentTaskConfig | config.KnowledgeBaseConfig | config.InspTree | *config.InspTree
 }
 
-type GetType interface {
-	*config.DefaultConfig | *config.DBConfig | *config.TaskConfig | *config.LogConfig | *config.AlertConfig |
-		*config.AgentConfig | *config.AgentTaskConfig | *config.KnowledgeBaseConfig | *config.InspTree
-}
-
 func SetConfigMeta(c config.ConfigMeta) error {
 	mu.Lock()
 	defer mu.Unlock()
-	Adds(c.CommonConfigGroup.Alerts...)
-	Adds(c.CommonConfigGroup.DBs...)
-	Adds(c.CommonConfigGroup.Logs...)
-	Adds(c.TaskConfigGroup.Tasks...)
-	Adds(c.AgentConfigGroup.Agent)
-	Adds(c.AgentConfigGroup.AgentTasks...)
-	Adds(c.AgentConfigGroup.KnowledgeBases...)
-	Adds(c.Insp)
+	AppendConfigs(c.CommonConfigGroup.Alerts...)
+	AppendConfigs(c.CommonConfigGroup.DBs...)
+	AppendConfigs(c.CommonConfigGroup.Logs...)
+	AppendConfigs(c.TaskConfigGroup.Tasks...)
+	AppendConfigs(c.AgentConfigGroup.Agent)
+	AppendConfigs(c.AgentConfigGroup.AgentTasks...)
+	AppendConfigs(c.AgentConfigGroup.KnowledgeBases...)
+	AppendConfigs(c.Insp)
 	return nil
 }
 
-func SetInsp(tree *config.InspTree) error {
+func AppendConfigs[T ParamType](configs ...T) (err error) {
 	mu.Lock()
 	defer mu.Unlock()
-	Meta.Insp = tree
-	return nil
-}
-
-func Adds[T ParamType](configs ...T) (err error) {
 	for i := range configs {
-		err = Add(configs[i])
+		err = add(configs[i])
 		if err != nil {
 			return err
 		}
@@ -89,9 +79,7 @@ func Adds[T ParamType](configs ...T) (err error) {
 	return
 }
 
-func Add[T config.ConfigType](cfg T) error {
-	mu.Lock()
-	defer mu.Unlock()
+func add[T config.ConfigType](cfg T) error {
 	switch t := any(cfg).(type) {
 	case config.DBConfig:
 		Meta.DBs = append(Meta.DBs, t)
@@ -158,6 +146,7 @@ func Del[T ParamType](cfg T) error {
 	return nil
 }
 
+// O(n)
 func removeFromSlice[T config.Id](slice []T, cfg T) {
 	for i, item := range slice {
 		if item.GetIdentity() == cfg.GetIdentity() {
@@ -213,7 +202,7 @@ func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) 
 func Save[T config.ConfigType](target T) error {
 	origin, err := Get(target)
 	if err != nil {
-		return Add(target)
+		return AppendConfigs(target)
 	}
 	//todo：test
 	getPtrValue := reflect.ValueOf(origin)

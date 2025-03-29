@@ -22,7 +22,7 @@ const (
 )
 
 type ConfigType interface {
-	DefaultConfig | DBConfig | TaskConfig | LogConfig | AlertConfig |
+	InitConfig | DBConfig | TaskConfig | LogConfig | AlertConfig |
 		AgentConfig | AgentTaskConfig | KnowledgeBaseConfig | InspTree | *InspTree
 }
 
@@ -46,28 +46,5 @@ func GetConfigTypeName(data any) (string, error) {
 		return TypeInspector, nil
 	default:
 		return "", fmt.Errorf("unknown config type: %T", data)
-	}
-}
-
-func GetConfigType[T ConfigType](typeName string) (T, error) {
-	switch typeName {
-	case TypeLog:
-		return any(LogConfig{}).(T), nil
-	case TypeDB:
-		return any(DBConfig{}).(T), nil
-	case TypeAlert:
-		return any(AlertConfig{}).(T), nil
-	case TypeTask:
-		return any(TaskConfig{}).(T), nil
-	case TypeAgent:
-		return any(AgentConfig{}).(T), nil
-	case TypeAgentTask:
-		return any(AgentTaskConfig{}).(T), nil
-	case TypeKBase:
-		return any(KnowledgeBaseConfig{}).(T), nil
-	case TypeInspector:
-		return any(InspTree{}).(T), nil
-	default:
-		return any(LogConfig{}).(T), fmt.Errorf("unknown config type: " + typeName)
 	}
 }

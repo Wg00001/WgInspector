@@ -13,7 +13,7 @@ import (
  * @date 2025/3/25
  */
 
-func Use(cfg config.DefaultConfig) error {
+func Use(cfg config.InitConfig) error {
 	driver, err := GetDriver(cfg.ClientDriver)
 	if err != nil {
 		return err

@@ -16,14 +16,14 @@ import (
 func TestClientWebsocketStart(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "local_file")
 	start.Init()
-	err := client.Use(config.DefaultConfig{
+	err := client.Use(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws://127.0.0.1:9999",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	closeFunc := client.Listen(context.Background())
-	defer closeFunc()
+	client.Listen(context.Background())
+	defer client.Close()
 	select {}
 }

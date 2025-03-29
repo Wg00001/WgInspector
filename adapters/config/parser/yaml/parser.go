@@ -25,7 +25,7 @@ type ConfigYamlParser struct {
 }
 
 type ConfigYaml struct {
-	Default           config.DefaultConfig     `yaml:"default"`
+	Default           config.InitConfig        `yaml:"default"`
 	DBConfigs         []config.DBConfig        `yaml:"db"`
 	LogConfigOrigin   []map[string]interface{} `yaml:"log"`
 	LogConfig         []config.LogConfig       `yaml:"-"`

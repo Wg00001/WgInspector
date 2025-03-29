@@ -54,7 +54,7 @@ func GetReader(name string) (config.Reader, error) {
 	defer readerDriverMu.RUnlock()
 	res, ok := readerDrivers[name]
 	if !ok {
-		return nil, fmt.Errorf("config: get driver fail %s\n", name)
+		return nil, fmt.Errorf("config: get driver fail: %s\n", name)
 	}
 	return res, nil
 }
@@ -81,7 +81,7 @@ func GetParser(name string) (config.Parser, error) {
 	defer parserDriverMu.RUnlock()
 	res, ok := parserDrivers[name]
 	if !ok {
-		return nil, fmt.Errorf("config: get driver fail %s\n", name)
+		return nil, fmt.Errorf("config: get parser fail: %s\n", name)
 	}
 	return res, nil
 }

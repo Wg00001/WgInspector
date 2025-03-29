@@ -15,15 +15,15 @@ import (
 )
 
 func TestClientWebsocketStart(t *testing.T) {
-	err := client.Use(config.DefaultConfig{
+	err := client.Use(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws://127.0.0.1:9999",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	closeFunc := client.Listen(context.Background())
-	defer closeFunc()
+	client.Listen(context.Background())
+	defer client.Close()
 	select {}
 }
 
@@ -140,7 +140,7 @@ func TestHandleConfigUpdate_DB(t *testing.T) {
 	defer ts.Close()
 
 	// 初始化客户端
-	err := client.Use(config.DefaultConfig{
+	err := client.Use(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws" + strings.TrimPrefix(ts.URL, "http"),
 	})
@@ -148,8 +148,8 @@ func TestHandleConfigUpdate_DB(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 启动监听并通知就绪
-	f := client.Listen(context.Background())
-	defer f()
+	client.Listen(context.Background())
+	defer client.Close()
 	close(ready) // 客户端开始监听后通知服务端
 
 	// 等待测试完成或超时

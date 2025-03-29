@@ -16,7 +16,7 @@ import (
 var (
 	Meta  = config.ConfigMeta{Insp: config.NewTree()}
 	Index = config.ConfigIndex{
-		Default:   &config.DefaultConfig{},
+		Default:   &config.InitConfig{},
 		Task:      make(map[config.Identity]*config.TaskConfig),
 		DB:        make(map[config.Identity]*config.DBConfig),
 		Log:       make(map[config.Identity]*config.LogConfig),
@@ -49,7 +49,7 @@ func GetAllInsp() []*config.InspNode {
 }
 
 type ParamType interface {
-	config.DefaultConfig | config.DBConfig | config.TaskConfig | config.LogConfig | config.AlertConfig |
+	config.InitConfig | config.DBConfig | config.TaskConfig | config.LogConfig | config.AlertConfig |
 		config.AgentConfig | config.AgentTaskConfig | config.KnowledgeBaseConfig | config.InspTree | *config.InspTree
 }
 
@@ -114,8 +114,8 @@ func Del[T ParamType](cfg T) error {
 	mu.Lock()
 	defer mu.Unlock()
 	switch t := any(cfg).(type) {
-	//case config.DefaultConfig:
-	//	Index.Default = &config.DefaultConfig{} // 非 map 类型保持清空值
+	//case config.InitConfig:
+	//	Index.Default = &config.InitConfig{} // 非 map 类型保持清空值
 	case config.DBConfig:
 		delete(Index.DB, t.Identity)
 		removeFromSlice[config.DBConfig](Meta.DBs, t)
@@ -166,7 +166,7 @@ func Get[T config.ConfigType](target T) (res *T, err error) {
 	defer mu.RUnlock()
 	var index any
 	switch t := any(target).(type) {
-	case config.DefaultConfig:
+	case config.InitConfig:
 		index = Index.Default
 	case config.DBConfig:
 		index, err = getFromIndex(Index.DB, t.Identity)

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"WgInspector/utils"
 	"time"
 )
 
@@ -10,11 +11,12 @@ import (
  * @date 2025/1/19
  */
 
-type DefaultConfig struct {
+type InitConfig struct {
 	ConfigReader string
 	ConfigParser string
 	ClientDriver string
 	ClientURL    string
+	Option       utils.Option
 }
 
 type ConfigMeta struct {
@@ -43,7 +45,7 @@ type AgentConfigGroup struct {
 }
 
 type ConfigIndex struct {
-	Default *DefaultConfig
+	Default *InitConfig
 	Task    map[Identity]*TaskConfig
 	DB      map[Identity]*DBConfig
 	Log     map[Identity]*LogConfig

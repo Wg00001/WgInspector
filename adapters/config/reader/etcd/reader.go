@@ -7,8 +7,9 @@ import (
 	"WgInspector/utils"
 	"context"
 	"fmt"
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/client/v3"
 	"log"
+	"time"
 )
 
 /**
@@ -31,10 +32,19 @@ type ConfigReaderEtcd struct {
 var _ config.Reader = (*ConfigReaderEtcd)(nil)
 
 func (*ConfigReaderEtcd) NewReader(option utils.Option) (_ config.Reader, err error) {
+	//todo: initConfig read option
 	client, err := clientv3.New(clientv3.Config{
-		Username: option.GetOrDefault("username", ""),
-		Password: option.GetOrDefault("password", ""),
+		Endpoints:   []string{option.GetOrDefault("etcd_endpoint", "http://localhost:2379")},
+		DialTimeout: 5 * time.Second,
+		Username:    option.GetOrDefault("username", ""),
+		Password:    option.GetOrDefault("password", ""),
 	})
+	if err != nil {
+		return nil, err
+	}
+	if client == nil {
+		return nil, fmt.Errorf("config reader - etcd: etcd client init fail, client is nil")
+	}
 	parser, err := config2.GetParser(option.GetOrDefault(reader.OptionParser, "json"))
 	if err != nil {
 		return nil, err
@@ -59,8 +69,12 @@ func (c *ConfigReaderEtcd) ReadConfig() (err error) {
 	meta.Tasks = readAndParse[config.TaskConfig](c)
 	meta.Logs = readAndParse[config.LogConfig](c)
 	meta.Alerts = readAndParse[config.AlertConfig](c)
-	meta.Agent = readAndParse[config.AgentConfig](c)[0]
-	meta.Insp = readAndParse[*config.InspTree](c)[0]
+	if agentConfig := readAndParse[config.AgentConfig](c); len(agentConfig) > 0 {
+		meta.Agent = agentConfig[0]
+	}
+	if inspConfig := readAndParse[*config.InspTree](c); len(inspConfig) > 0 {
+		meta.Insp = inspConfig[0]
+	}
 	return config2.SetConfigMeta(meta)
 }
 

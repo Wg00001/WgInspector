@@ -2,6 +2,7 @@ package json
 
 import (
 	"WgInspector/entities/config"
+	config2 "WgInspector/usecase/config"
 	"encoding/json"
 )
 
@@ -10,6 +11,10 @@ import (
  * @author Wg
  * @date 2025/3/18
  */
+
+func init() {
+	config2.RegisterParser("json", &ConfigJsonParser{})
+}
 
 type ConfigJsonParser struct {
 	config.ConfigMeta

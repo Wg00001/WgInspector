@@ -22,6 +22,13 @@ func (o Option) With(optionFunc ...OptionFunc) {
 	}
 }
 
+func (o Option) WithOption(next Option) Option {
+	for k, v := range next {
+		o[k] = v
+	}
+	return o
+}
+
 func (o Option) GetOrDefault(key, def string) string {
 	res, ok := o[key]
 	if !ok {

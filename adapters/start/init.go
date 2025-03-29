@@ -48,7 +48,7 @@ func Init(optionFuncArr ...utils.OptionFunc) {
 	opt.With(optionFuncArr...)
 	localFileOptFunc(opt)
 
-	err := config2.Open(opt["config_reader"], opt)
+	err := config2.Open(opt.GetOrDefault("config_reader", "local_file"), opt)
 	if err != nil {
 		panic(fmt.Sprintf("config open fail: %s", err))
 	}

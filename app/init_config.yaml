@@ -1,6 +1,6 @@
 config_reader: local_file
 config_parser: yaml
 client_driver: websocket
-client_url: "http://127.0.0.1:9999/"
+client_url: "ws://127.0.0.1:9999/"
 option:
   filepath: "./app/config"

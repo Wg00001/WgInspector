@@ -5,9 +5,12 @@ import (
 	client2 "WgInspector/usecase/client"
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	_ "modernc.org/sqlite"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 const (
@@ -28,18 +31,28 @@ func init() {
 }
 
 func NewSQLiteAuth() (*SQLiteAuth, error) {
-	db, err := sql.Open("sqlite3", "./app/auth.db")
+	// 分离文件路径和 DSN
+	filePath := "./app/auth.db" // 实际文件路径
+	dsn := "file:" + filePath   // modernc 要求的 DSN 格式
+
+	// 确保数据库目录存在（基于实际文件路径）
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return nil, fmt.Errorf("创建数据库目录失败: %w", err)
+	}
+
+	// 打开/创建数据库（使用 DSN）
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("打开数据库失败: %w", err)
 	}
 
-	// 创建用户表
+	// 创建用户表（IF NOT EXISTS 确保幂等性）
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			username TEXT PRIMARY KEY,
-			password TEXT NOT NULL
-		)
-	`)
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL
+        )
+    `)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("创建用户表失败: %w", err)
@@ -47,25 +60,32 @@ func NewSQLiteAuth() (*SQLiteAuth, error) {
 
 	auth := &SQLiteAuth{db: db}
 
-	// 检查是否需要创建默认用户
-	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	if err != nil {
+	// 检查默认用户（带错误重试机制）
+	const maxRetries = 3
+	for i := 0; i < maxRetries; i++ {
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+		if err == nil {
+			if count == 0 {
+				if err := auth.NewUser(client.User{
+					UserName: defaultUsername,
+					Password: defaultPassword,
+				}); err != nil {
+					db.Close()
+					return nil, fmt.Errorf("创建默认用户失败: %w", err)
+				}
+				log.Printf("已创建默认用户，用户名: %s, 密码: %s", defaultUsername, defaultPassword)
+			}
+			break
+		}
+
+		// 增强型错误检测（兼容 modernc 的错误信息）
+		if i < maxRetries-1 && err.Error() == "database is locked" {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
 		db.Close()
 		return nil, fmt.Errorf("检查用户数量失败: %w", err)
-	}
-
-	// 如果没有用户，创建默认用户
-	if count == 0 {
-		err = auth.NewUser(client.User{
-			UserName: defaultUsername,
-			Password: defaultPassword,
-		})
-		if err != nil {
-			db.Close()
-			return nil, fmt.Errorf("创建默认用户失败: %w", err)
-		}
-		log.Printf("已创建默认用户，用户名: %s, 密码: %s", defaultUsername, defaultPassword)
 	}
 
 	return auth, nil

@@ -6,6 +6,7 @@ import (
 	client2 "WgInspector/usecase/client"
 	config2 "WgInspector/usecase/config"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -14,6 +15,8 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
+	"time"
 )
 
 /**
@@ -30,14 +33,26 @@ const (
 	clientActionGet    = "config_get"
 	clientActionSave   = "config_save"
 	clientActionDelete = "config_delete"
+
+	// 连接超时时间
+	idleTimeout = 3 * time.Hour
+	// ping 检查间隔
+	pingPeriod = 30 * time.Second
 )
 
 type ClientWebSocket struct {
 	server    *http.Server
-	conns     map[*websocket.Conn]bool
+	conns     map[*websocket.Conn]*connInfo
+	connMutex sync.RWMutex
 	parsedURL *url.URL
+	callback  func(string, interface{})
+}
 
-	callback func(string, interface{})
+type connInfo struct {
+	conn       *websocket.Conn
+	lastActive time.Time
+	timer      *time.Timer
+	username   string
 }
 
 type MessageStruct struct {
@@ -52,7 +67,9 @@ func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
-	c.conns = make(map[*websocket.Conn]bool)
+	c.conns = make(map[*websocket.Conn]*connInfo)
+	c.connMutex = sync.RWMutex{}
+
 	// 解析 URL 获取监听地址和端口
 	c.parsedURL, err = url.Parse(urlStr)
 	if err != nil {
@@ -67,65 +84,175 @@ func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 
 	// 设置 HTTP 路由和处理函数
 	http.HandleFunc(c.parsedURL.Path, func(w http.ResponseWriter, r *http.Request) {
-		// 升级 HTTP 连接为 WebSocket
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			fmt.Printf("WebSocket 升级失败: %v\n", err)
+		// 获取认证信息
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "未提供认证信息", http.StatusUnauthorized)
 			return
 		}
 
+		// 解析 Basic 认证信息
+		authType, authData, found := strings.Cut(authHeader, " ")
+		if !found || authType != "Basic" {
+			http.Error(w, "认证格式错误", http.StatusBadRequest)
+			return
+		}
+
+		// 解码认证数据
+		decoded, err := base64.StdEncoding.DecodeString(authData)
+		if err != nil {
+			http.Error(w, "认证信息解码失败", http.StatusBadRequest)
+			return
+		}
+
+		username, password, found := strings.Cut(string(decoded), ":")
+		if !found {
+			http.Error(w, "认证信息格式错误", http.StatusBadRequest)
+			return
+		}
+
+		// 验证用户身份
+		user, err := client2.Auth(username, password)
+		if err != nil {
+			log.Printf("认证失败: %v", err)
+			http.Error(w, "认证失败", http.StatusUnauthorized)
+			return
+		}
+
+		// 认证成功，升级连接为 WebSocket
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Printf("WebSocket 升级失败: %v", err)
+			return
+		}
+
+		// 创建连接信息
+		info := &connInfo{
+			conn:       conn,
+			lastActive: time.Now(),
+			username:   user.UserName,
+		}
+
+		// 设置连接超时定时器
+		info.timer = time.AfterFunc(idleTimeout, func() {
+			c.closeConnection(conn, "连接超时")
+		})
+
 		// 保存连接
-		c.conns[conn] = true
-		log.Println("websocket connected")
-		//进行处理
-		go func() {
-			defer conn.Close()
-			for {
-				_, message, err := conn.ReadMessage()
-				if err != nil {
-					// 判断错误是否为 context 取消导致的正常关闭
-					if websocket.IsUnexpectedCloseError(err) {
-						log.Printf("连接异常关闭: %v", err)
-					} else {
-						log.Printf("读取消息错误: %v", err)
-					}
-					break // 退出循环，结束监听
-				}
+		c.connMutex.Lock()
+		c.conns[conn] = info
+		c.connMutex.Unlock()
 
-				// 解析和处理消息
-				msg := MessageStruct{}
-				if err := json.Unmarshal(message, &msg); err != nil {
-					log.Printf("消息解析失败: %v", err)
-					continue
-				}
+		log.Printf("用户 %s WebSocket 连接成功", user.UserName)
 
-				switch msg.Action {
-				case clientActionGet:
-					if err = c.handleConfigGet(conn); err != nil {
-						log.Println("client - websocket: config_get handle err: " + err.Error())
-					}
-				case clientActionSave:
-					if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
-						log.Println("client - websocket: config_update handle err: " + err.Error())
-					}
-				case clientActionDelete:
+		// 启动心跳检测
+		go c.startPing(conn)
 
-				default:
-					log.Printf("client - websocket: 未知操作类型: %s\n", msg.Action)
-				}
-			}
-		}()
+		// 处理 WebSocket 消息
+		go c.handleWebSocketConnection(conn)
 	})
 
 	return c, nil
 }
 
+func (c *ClientWebSocket) startPing(conn *websocket.Conn) {
+	ticker := time.NewTicker(pingPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
+				log.Printf("发送 ping 失败: %v", err)
+				c.closeConnection(conn, "ping 失败")
+				return
+			}
+		}
+	}
+}
+
+func (c *ClientWebSocket) closeConnection(conn *websocket.Conn, reason string) {
+	c.connMutex.Lock()
+	defer c.connMutex.Unlock()
+
+	if info, exists := c.conns[conn]; exists {
+		log.Printf("关闭用户 %s 的连接: %s", info.username, reason)
+		info.timer.Stop()
+		conn.Close()
+		delete(c.conns, conn)
+	}
+}
+
+func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
+	defer c.closeConnection(conn, "连接结束")
+
+	// 设置消息处理函数
+	conn.SetPongHandler(func(string) error {
+		c.updateConnectionTime(conn)
+		return nil
+	})
+
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err) {
+				log.Printf("连接异常关闭: %v", err)
+			}
+			return
+		}
+
+		// 更新最后活动时间
+		c.updateConnectionTime(conn)
+
+		// 解析和处理消息
+		msg := MessageStruct{}
+		if err := json.Unmarshal(message, &msg); err != nil {
+			log.Printf("消息解析失败: %v", err)
+			continue
+		}
+
+		switch msg.Action {
+		case clientActionGet:
+			if err = c.handleConfigGet(conn); err != nil {
+				log.Printf("处理 config_get 失败: %v", err)
+			}
+		case clientActionSave:
+			if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
+				log.Printf("处理 config_save 失败: %v", err)
+			}
+		case clientActionDelete:
+			log.Printf("收到删除请求")
+		default:
+			log.Printf("未知操作类型: %s", msg.Action)
+		}
+	}
+}
+
+func (c *ClientWebSocket) updateConnectionTime(conn *websocket.Conn) {
+	c.connMutex.Lock()
+	defer c.connMutex.Unlock()
+
+	if info, exists := c.conns[conn]; exists {
+		info.lastActive = time.Now()
+		info.timer.Reset(idleTimeout)
+	}
+}
+
 func (c ClientWebSocket) Close() error {
+	c.connMutex.Lock()
+	defer c.connMutex.Unlock()
+
+	for conn, info := range c.conns {
+		info.timer.Stop()
+		conn.Close()
+	}
+	c.conns = make(map[*websocket.Conn]*connInfo)
 	return c.server.Close()
 }
 
 // UpdateCallback 服务端向客户端发送配置更新
-func (c ClientWebSocket) UpdateCallback(configType string, data any) error {
+func (c *ClientWebSocket) UpdateCallback(configType string, data any) error {
 	marshal, err := json.Marshal(struct {
 		Type string      `json:"type"`
 		Data interface{} `json:"data"`
@@ -136,12 +263,15 @@ func (c ClientWebSocket) UpdateCallback(configType string, data any) error {
 	if err != nil {
 		return err
 	}
-	for conn, ok := range c.conns {
-		if ok {
-			err = conn.WriteMessage(websocket.TextMessage, marshal)
-			if err != nil {
-				return err
-			}
+
+	c.connMutex.RLock()
+	defer c.connMutex.RUnlock()
+
+	for conn, info := range c.conns {
+		err = conn.WriteMessage(websocket.TextMessage, marshal)
+		if err != nil {
+			log.Printf("向用户 %s 发送消息失败: %v", info.username, err)
+			continue
 		}
 	}
 	return nil

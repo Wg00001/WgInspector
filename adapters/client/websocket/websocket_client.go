@@ -26,13 +26,14 @@ import (
  */
 
 func init() {
-	client2.RegisterDriver("websocket", ClientWebSocket{})
+	client2.RegisterDriver("websocket", &ClientWebSocket{})
 }
 
 const (
-	clientActionGet    = "config_get"
-	clientActionSave   = "config_save"
-	clientActionDelete = "config_delete"
+	clientActionGet        = "config_get"
+	clientActionSave       = "config_save"
+	clientActionDelete     = "config_delete"
+	clientActionChangePass = "change_password"
 
 	// 连接超时时间
 	idleTimeout = 3 * time.Hour
@@ -59,11 +60,13 @@ type MessageStruct struct {
 	Action     string          `json:"action"`
 	ConfigType string          `json:"config_type,omitempty"`
 	ConfigData json.RawMessage `json:"config_data,omitempty"`
+	OldPass    string          `json:"old_password,omitempty"`
+	NewPass    string          `json:"new_password,omitempty"`
 }
 
 var _ client.Client = (*ClientWebSocket)(nil)
 
-func (c ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
+func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
@@ -223,6 +226,13 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 			}
 		case clientActionDelete:
 			log.Printf("收到删除请求")
+		case clientActionChangePass:
+			if err = c.handleChangePassword(conn, msg); err != nil {
+				log.Printf("处理密码修改失败: %v", err)
+				c.sendError(conn, fmt.Sprintf("密码修改失败: %v", err))
+			} else {
+				c.sendSuccess(conn, "密码修改成功")
+			}
 		default:
 			log.Printf("未知操作类型: %s", msg.Action)
 		}
@@ -239,7 +249,7 @@ func (c *ClientWebSocket) updateConnectionTime(conn *websocket.Conn) {
 	}
 }
 
-func (c ClientWebSocket) Close() error {
+func (c *ClientWebSocket) Close() error {
 	c.connMutex.Lock()
 	defer c.connMutex.Unlock()
 
@@ -277,7 +287,7 @@ func (c *ClientWebSocket) UpdateCallback(configType string, data any) error {
 	return nil
 }
 
-func (c ClientWebSocket) Listen(context.Context) {
+func (c *ClientWebSocket) Listen(context.Context) {
 	// 启动 HTTP 服务端（异步）
 	go func() {
 		if err := c.server.ListenAndServe(); err != nil {
@@ -287,7 +297,7 @@ func (c ClientWebSocket) Listen(context.Context) {
 
 }
 
-func (c ClientWebSocket) handleConfigGet(conn *websocket.Conn) error {
+func (c *ClientWebSocket) handleConfigGet(conn *websocket.Conn) error {
 	mt := client2.GetConfigMeta()
 	return conn.WriteJSON(mt)
 }
@@ -302,7 +312,7 @@ func parseJson[T config.ConfigType](configData json.RawMessage) (T, error) {
 }
 
 // 客户端向服务端发送配置更新
-func (c ClientWebSocket) handleConfigSave(configType string, configData json.RawMessage) (err error) {
+func (c *ClientWebSocket) handleConfigSave(configType string, configData json.RawMessage) (err error) {
 	//cfg, err := jsonParse(configType, configData)
 	switch configType {
 	case config.TypeDB:
@@ -333,4 +343,57 @@ func save[T config.ConfigType](arg T, err error) error {
 		return err
 	}
 	return client2.GetMetaOfType(arg)
+}
+
+func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg MessageStruct) error {
+	// 获取当前连接的用户信息
+	c.connMutex.RLock()
+	info, exists := c.conns[conn]
+	c.connMutex.RUnlock()
+	if !exists {
+		return fmt.Errorf("连接信息不存在")
+	}
+
+	// 验证旧密码
+	_, err := client2.Auth(info.username, msg.OldPass)
+	if err != nil {
+		return fmt.Errorf("旧密码验证失败: %w", err)
+	}
+
+	// 更新密码
+	err = client2.UpdateUser(client.User{
+		UserName: info.username,
+		Password: msg.NewPass,
+	})
+	if err != nil {
+		return fmt.Errorf("更新密码失败: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClientWebSocket) sendError(conn *websocket.Conn, message string) {
+	response := struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+	}{
+		Success: false,
+		Error:   message,
+	}
+	if err := conn.WriteJSON(response); err != nil {
+		log.Printf("发送错误消息失败: %v", err)
+	}
+}
+
+func (c *ClientWebSocket) sendSuccess(conn *websocket.Conn, message string) {
+	response := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{
+		Success: true,
+		Message: message,
+	}
+	if err := conn.WriteJSON(response); err != nil {
+		log.Printf("发送成功消息失败: %v", err)
+	}
 }

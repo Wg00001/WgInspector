@@ -8,6 +8,13 @@ import "context"
  * @date 2025/3/17
  */
 
+type Author interface {
+	Auth(username, password string) (User, error)
+	NewUser(User) error
+	DeleteUser(username, password string) error
+	UpdateUser(User) error
+}
+
 type User struct {
 	UserName string
 	Password string

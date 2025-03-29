@@ -54,8 +54,6 @@ type ParamType interface {
 }
 
 func SetConfigMeta(c config.ConfigMeta) error {
-	mu.Lock()
-	defer mu.Unlock()
 	AppendConfigs(c.CommonConfigGroup.Alerts...)
 	AppendConfigs(c.CommonConfigGroup.DBs...)
 	AppendConfigs(c.CommonConfigGroup.Logs...)

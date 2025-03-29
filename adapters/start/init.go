@@ -19,6 +19,7 @@ import (
 	_ "WgInspector/adapters/agent/analyzer/default"
 	_ "WgInspector/adapters/agent/analyzer/ollama"
 	_ "WgInspector/adapters/agent/analyzer/openai"
+	_ "WgInspector/adapters/agent/kbase/chroma"
 
 	_ "WgInspector/adapters/alerter/default"
 	_ "WgInspector/adapters/alerter/empty"

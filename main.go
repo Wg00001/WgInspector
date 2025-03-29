@@ -46,6 +46,8 @@ func main() {
 		log.Fatalf("[ERROR] Initial configuration load failed: %v", err)
 	}
 
+	startServices()
+
 	// Start interactive shell
 	go commandListener()
 
@@ -54,7 +56,6 @@ func main() {
 
 	// Main loop
 	for {
-		startServices()
 		select {
 		case <-restartChan:
 			log.Println("[INFO] Restarting services...")
@@ -99,14 +100,15 @@ func startServices() {
 		opt.WithOption(global.Option)
 	})
 
+	if err := client.Use(global); err != nil {
+		log.Printf("[ERROR] Client init: %v", err)
+		return
+	}
+
 	// 启动客户端（使用新上下文）
-	serviceWg.Add(1)
+	//serviceWg.Add(1)
 	go func() {
-		defer serviceWg.Done()
-		if err := client.Use(global); err != nil {
-			log.Printf("[ERROR] Client init: %v", err)
-			return
-		}
+		//defer serviceWg.Done()
 		client.Listen(ctx)
 	}()
 

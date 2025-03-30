@@ -87,73 +87,153 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 
 	// 设置 HTTP 路由和处理函数
 	http.HandleFunc(c.parsedURL.Path, func(w http.ResponseWriter, r *http.Request) {
-		// 获取认证信息
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			http.Error(w, "未提供认证信息", http.StatusUnauthorized)
-			return
-		}
-
-		// 解析 Basic 认证信息
-		authType, authData, found := strings.Cut(authHeader, " ")
-		if !found || authType != "Basic" {
-			http.Error(w, "认证格式错误", http.StatusBadRequest)
-			return
-		}
-
-		// 解码认证数据
-		decoded, err := base64.StdEncoding.DecodeString(authData)
-		if err != nil {
-			http.Error(w, "认证信息解码失败", http.StatusBadRequest)
-			return
-		}
-
-		username, password, found := strings.Cut(string(decoded), ":")
-		if !found {
-			http.Error(w, "认证信息格式错误", http.StatusBadRequest)
-			return
-		}
-
-		// 验证用户身份
-		user, err := client2.Auth(username, password)
-		if err != nil {
-			log.Printf("认证失败: %v", err)
-			http.Error(w, "认证失败", http.StatusUnauthorized)
-			return
-		}
-
-		// 认证成功，升级连接为 WebSocket
+		// 直接升级连接为 WebSocket
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("WebSocket 升级失败: %v", err)
 			return
 		}
 
-		// 创建连接信息
-		info := &connInfo{
-			conn:       conn,
-			lastActive: time.Now(),
-			username:   user.UserName,
+		// 等待认证消息
+		authenticated := make(chan bool, 1)
+		go func() {
+			defer close(authenticated)
+
+			// 设置认证超时
+			conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+
+			// 读取认证消息
+			var authMsg struct {
+				Action    string `json:"action"`
+				AuthToken string `json:"auth_token"`
+			}
+
+			err := conn.ReadJSON(&authMsg)
+			if err != nil {
+				log.Printf("读取认证消息失败: %v", err)
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "读取认证消息失败",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			// 验证消息类型
+			if authMsg.Action != "authenticate" {
+				log.Println("无效的认证消息类型")
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "无效的认证消息类型",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			// 解析 Basic 认证信息
+			authType, authData, found := strings.Cut(authMsg.AuthToken, " ")
+			if !found || authType != "Basic" {
+				log.Println("认证格式错误")
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "认证格式错误",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			// 解码认证数据
+			decoded, err := base64.StdEncoding.DecodeString(authData)
+			if err != nil {
+				log.Println("认证信息解码失败")
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "认证信息解码失败",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			username, password, found := strings.Cut(string(decoded), ":")
+			if !found {
+				log.Println("认证信息格式错误")
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "认证信息格式错误",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			// 验证用户身份
+			user, err := client2.Auth(username, password)
+			if err != nil {
+				log.Printf("认证失败: %v", err)
+				conn.WriteJSON(map[string]interface{}{
+					"action":  "authenticate_response",
+					"success": false,
+					"error":   "认证失败",
+				})
+				conn.Close()
+				authenticated <- false
+				return
+			}
+
+			// 认证成功
+			conn.WriteJSON(map[string]interface{}{
+				"action":  "authenticate_response",
+				"success": true,
+			})
+
+			// 重置读取超时
+			conn.SetReadDeadline(time.Time{})
+
+			// 创建连接信息
+			info := &connInfo{
+				conn:       conn,
+				lastActive: time.Now(),
+				username:   user.UserName,
+			}
+
+			// 设置连接超时定时器
+			info.timer = time.AfterFunc(idleTimeout, func() {
+				c.closeConnection(conn, "连接超时")
+			})
+
+			// 保存连接
+			c.connMutex.Lock()
+			c.conns[conn] = info
+			c.connMutex.Unlock()
+
+			authenticated <- true
+
+			log.Printf("用户 %s WebSocket 连接认证成功", user.UserName)
+		}()
+
+		// 等待认证结果
+		select {
+		case success := <-authenticated:
+			fmt.Println()
+			if success {
+				// 启动心跳检测
+				go c.startPing(conn)
+				// 处理 WebSocket 消息
+				go c.handleWebSocketConnection(conn)
+			}
+		case <-time.After(10 * time.Second):
+			log.Println("认证超时")
+			conn.Close()
 		}
-
-		// 设置连接超时定时器
-		info.timer = time.AfterFunc(idleTimeout, func() {
-			c.closeConnection(conn, "连接超时")
-		})
-
-		// 保存连接
-		c.connMutex.Lock()
-		c.conns[conn] = info
-		c.connMutex.Unlock()
-
-		log.Printf("用户 %s WebSocket 连接成功", user.UserName)
-
-		// 启动心跳检测
-		go c.startPing(conn)
-
-		// 处理 WebSocket 消息
-		go c.handleWebSocketConnection(conn)
 	})
 
 	return c, nil
@@ -217,6 +297,7 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 
 		switch msg.Action {
 		case clientActionGet:
+			fmt.Println(clientActionGet)
 			if err = c.handleConfigGet(conn); err != nil {
 				log.Printf("处理 config_get 失败: %v", err)
 			}
@@ -264,11 +345,13 @@ func (c *ClientWebSocket) Close() error {
 // UpdateCallback 服务端向客户端发送配置更新
 func (c *ClientWebSocket) UpdateCallback(configType string, data any) error {
 	marshal, err := json.Marshal(struct {
-		Type string      `json:"type"`
-		Data interface{} `json:"data"`
+		Action string      `json:"action"`
+		Type   string      `json:"type"`
+		Data   interface{} `json:"data"`
 	}{
-		Type: configType,
-		Data: data,
+		Action: "config_update",
+		Type:   configType,
+		Data:   data,
 	})
 	if err != nil {
 		return err
@@ -306,7 +389,7 @@ func parseJson[T config.ConfigType](configData json.RawMessage) (T, error) {
 	var res T
 	err := json.Unmarshal(configData, &res)
 	if err != nil {
-		return res, fmt.Errorf("client - json parse fail: type %s, data: %v", reflect.TypeOf(res), configData)
+		return res, fmt.Errorf("client - json parse fail: type %s, data: %v", reflect.TypeOf(res), string(configData))
 	}
 	return res, nil
 }

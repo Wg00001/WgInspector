@@ -78,35 +78,58 @@ func AppendConfigs[T config.Id](configs ...T) (err error) {
 }
 
 func add[T config.Id](cfg T) error {
-	if a, _ := Get(cfg); a != nil {
-		return fmt.Errorf("Append Config fail, config identity has been exist, Config: %v\n", cfg)
-	}
 	switch t := any(cfg).(type) {
 	case config.DBConfig:
+		if _, ok := Index.DB[t.Identity]; ok {
+			return fmt.Errorf("DBConfig identity %v already exists", t.Identity)
+		}
 		Meta.DBs = append(Meta.DBs, t)
 		Index.DB[t.Identity] = &Meta.DBs[len(Meta.DBs)-1]
 	case config.TaskConfig:
+		if _, ok := Index.Task[t.Identity]; ok {
+			return fmt.Errorf("TaskConfig identity %v already exists", t.Identity)
+		}
 		Meta.Tasks = append(Meta.Tasks, t)
 		Index.Task[t.Identity] = &Meta.Tasks[len(Meta.Tasks)-1]
 	case config.LogConfig:
+		if _, ok := Index.Log[t.Identity]; ok {
+			return fmt.Errorf("LogConfig identity %v already exists", t.Identity)
+		}
 		Meta.Logs = append(Meta.Logs, t)
 		Index.Log[t.Identity] = &Meta.Logs[len(Meta.Logs)-1]
 	case config.AlertConfig:
+		if _, ok := Index.Alert[t.Identity]; ok {
+			return fmt.Errorf("AlertConfig identity %v already exists", t.Identity)
+		}
 		Meta.Alerts = append(Meta.Alerts, t)
 		Index.Alert[t.Identity] = &Meta.Alerts[len(Meta.Alerts)-1]
 	case config.AgentConfig:
+		// 假设AgentConfig是单例，检查是否已存在
+		if Index.Agent != nil && Index.Agent.Identity != "" {
+			return fmt.Errorf("AgentConfig already exists")
+		}
 		Meta.Agent = t
 		Index.Agent = &Meta.Agent
 	case *config.InspTree:
+		// 假设InspTree是单例，检查是否已存在
+		if Meta.Insp != nil && Meta.Insp.Num == 0 {
+			return fmt.Errorf("InspTree already exists")
+		}
 		Meta.Insp = t
 	case config.AgentTaskConfig:
+		if _, ok := Index.AgentTask[t.Identity]; ok {
+			return fmt.Errorf("AgentTaskConfig identity %v already exists", t.Identity)
+		}
 		Meta.AgentTasks = append(Meta.AgentTasks, t)
 		Index.AgentTask[t.Identity] = &Meta.AgentTasks[len(Meta.AgentTasks)-1]
 	case config.KnowledgeBaseConfig:
+		if _, ok := Index.KBase[t.Identity]; ok {
+			return fmt.Errorf("KnowledgeBaseConfig identity %v already exists", t.Identity)
+		}
 		Meta.KnowledgeBases = append(Meta.KnowledgeBases, t)
 		Index.KBase[t.Identity] = &Meta.KnowledgeBases[len(Meta.KnowledgeBases)-1]
 	default:
-		return fmt.Errorf("type of config nonsupport to Add: %s\n", t)
+		return fmt.Errorf("type of config nonsupport to Add: %T", t)
 	}
 	return nil
 }

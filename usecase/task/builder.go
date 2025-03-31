@@ -43,7 +43,11 @@ func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
 	}
 	//添加todo列表的insp
 	for _, val := range taskCfg.Todo {
-		res.Inspects = append(res.Inspects, config2.GetInsp(val))
+		temp := config2.GetInsp(val)
+		if temp == nil {
+			continue
+		}
+		res.Inspects = append(res.Inspects, temp)
 	}
 	//去掉not to do的insp (使用hash连接)
 	notToDo := make(map[config.Identity]bool, len(taskCfg.NotTodo))
@@ -52,7 +56,7 @@ func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
 	}
 	newArr := make([]*config.InspNode, 0, len(res.Inspects))
 	for _, val := range res.Inspects {
-		if !notToDo[config.Identity(val.Identity)] {
+		if !notToDo[val.Identity] {
 			newArr = append(newArr, val)
 		}
 	}

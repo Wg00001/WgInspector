@@ -29,7 +29,7 @@ type InspTree struct {
 	AllInsp []*InspNode //所有的Insp节点
 }
 
-func (t *InspTree) GetIdentity() string {
+func (InspTree) GetIdentity() string {
 	return "InspTree"
 }
 

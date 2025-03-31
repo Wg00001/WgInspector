@@ -2,9 +2,7 @@ package websocket
 
 import (
 	"WgInspector/entities/client"
-	"WgInspector/entities/config"
 	client2 "WgInspector/usecase/client"
-	config2 "WgInspector/usecase/config"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -13,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -30,11 +27,6 @@ func init() {
 }
 
 const (
-	clientActionGet        = "config_get"
-	clientActionSave       = "config_save"
-	clientActionDelete     = "config_delete"
-	clientActionChangePass = "change_password"
-
 	// 连接超时时间
 	idleTimeout = 3 * time.Hour
 	// ping 检查间隔
@@ -54,14 +46,6 @@ type connInfo struct {
 	lastActive time.Time
 	timer      *time.Timer
 	username   string
-}
-
-type MessageStruct struct {
-	Action     string          `json:"action"`
-	ConfigType string          `json:"config_type,omitempty"`
-	ConfigData json.RawMessage `json:"config_data,omitempty"`
-	OldPass    string          `json:"old_password,omitempty"`
-	NewPass    string          `json:"new_password,omitempty"`
 }
 
 var _ client.Client = (*ClientWebSocket)(nil)
@@ -267,59 +251,6 @@ func (c *ClientWebSocket) closeConnection(conn *websocket.Conn, reason string) {
 	}
 }
 
-func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
-	defer c.closeConnection(conn, "连接结束")
-
-	// 设置消息处理函数
-	conn.SetPongHandler(func(string) error {
-		c.updateConnectionTime(conn)
-		return nil
-	})
-
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err) {
-				log.Printf("连接异常关闭: %v", err)
-			}
-			return
-		}
-
-		// 更新最后活动时间
-		c.updateConnectionTime(conn)
-
-		// 解析和处理消息
-		msg := MessageStruct{}
-		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("消息解析失败: %v", err)
-			continue
-		}
-
-		switch msg.Action {
-		case clientActionGet:
-			fmt.Println(clientActionGet)
-			if err = c.handleConfigGet(conn); err != nil {
-				log.Printf("处理 config_get 失败: %v", err)
-			}
-		case clientActionSave:
-			if err = c.handleConfigSave(msg.ConfigType, msg.ConfigData); err != nil {
-				log.Printf("处理 config_save 失败: %v", err)
-			}
-		case clientActionDelete:
-			log.Printf("收到删除请求")
-		case clientActionChangePass:
-			if err = c.handleChangePassword(conn, msg); err != nil {
-				log.Printf("处理密码修改失败: %v", err)
-				c.sendError(conn, fmt.Sprintf("密码修改失败: %v", err))
-			} else {
-				c.sendSuccess(conn, "密码修改成功")
-			}
-		default:
-			log.Printf("未知操作类型: %s", msg.Action)
-		}
-	}
-}
-
 func (c *ClientWebSocket) updateConnectionTime(conn *websocket.Conn) {
 	c.connMutex.Lock()
 	defer c.connMutex.Unlock()
@@ -342,17 +273,20 @@ func (c *ClientWebSocket) Close() error {
 	return c.server.Close()
 }
 
+type Send struct {
+	Action string `json:"action"`
+	Type   string `json:"type"`
+	Data   any    `json:"data"`
+}
+
 // UpdateCallback 服务端向客户端发送配置更新
-func (c *ClientWebSocket) UpdateCallback(configType string, data any) error {
-	marshal, err := json.Marshal(struct {
-		Action string      `json:"action"`
-		Type   string      `json:"type"`
-		Data   interface{} `json:"data"`
-	}{
-		Action: "config_update",
-		Type:   configType,
-		Data:   data,
-	})
+func (c *ClientWebSocket) UpdateCallback(ctx context.Context, configType string, data any) error {
+	marshal, err := json.Marshal(
+		Send{
+			Action: "config_update",
+			Type:   configType,
+			Data:   data,
+		})
 	if err != nil {
 		return err
 	}
@@ -360,7 +294,16 @@ func (c *ClientWebSocket) UpdateCallback(configType string, data any) error {
 	c.connMutex.RLock()
 	defer c.connMutex.RUnlock()
 
+	//排除当前链接
+	var exclude *websocket.Conn
+	if temp, ok := ctx.Value("exclude").(*websocket.Conn); ok {
+		exclude = temp
+	}
+
 	for conn, info := range c.conns {
+		if conn == exclude {
+			continue
+		}
 		err = conn.WriteMessage(websocket.TextMessage, marshal)
 		if err != nil {
 			log.Printf("向用户 %s 发送消息失败: %v", info.username, err)
@@ -377,106 +320,4 @@ func (c *ClientWebSocket) Listen(context.Context) {
 			log.Printf("client: server Listen fail: %v\n", err)
 		}
 	}()
-
-}
-
-func (c *ClientWebSocket) handleConfigGet(conn *websocket.Conn) error {
-	mt := client2.GetConfigMeta()
-	return conn.WriteJSON(mt)
-}
-
-func parseJson[T config.ConfigType](configData json.RawMessage) (T, error) {
-	var res T
-	err := json.Unmarshal(configData, &res)
-	if err != nil {
-		return res, fmt.Errorf("client - json parse fail: type %s, data: %v", reflect.TypeOf(res), string(configData))
-	}
-	return res, nil
-}
-
-// 客户端向服务端发送配置更新
-func (c *ClientWebSocket) handleConfigSave(configType string, configData json.RawMessage) (err error) {
-	//cfg, err := jsonParse(configType, configData)
-	switch configType {
-	case config.TypeDB:
-		return save(parseJson[config.DBConfig](configData))
-	case config.TypeLog:
-		return save(parseJson[config.LogConfig](configData))
-	case config.TypeAlert:
-		return save(parseJson[config.AlertConfig](configData))
-	case config.TypeTask:
-		return save(parseJson[config.TaskConfig](configData))
-	case config.TypeAgent:
-		return save(parseJson[config.AgentConfig](configData))
-	case config.TypeAgentTask:
-		return save(parseJson[config.AgentTaskConfig](configData))
-	case config.TypeKBase:
-		return save(parseJson[config.KnowledgeBaseConfig](configData))
-	default:
-		return fmt.Errorf("client - websocket: handle config save fail: type of configData not suppose: %s", configType)
-	}
-}
-
-func save[T config.ConfigType](arg T, err error) error {
-	if err != nil {
-		return err
-	}
-	err = config2.Save(arg)
-	if err != nil {
-		return err
-	}
-	return client2.GetMetaOfType(arg)
-}
-
-func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg MessageStruct) error {
-	// 获取当前连接的用户信息
-	c.connMutex.RLock()
-	info, exists := c.conns[conn]
-	c.connMutex.RUnlock()
-	if !exists {
-		return fmt.Errorf("连接信息不存在")
-	}
-
-	// 验证旧密码
-	_, err := client2.Auth(info.username, msg.OldPass)
-	if err != nil {
-		return fmt.Errorf("旧密码验证失败: %w", err)
-	}
-
-	// 更新密码
-	err = client2.UpdateUser(client.User{
-		UserName: info.username,
-		Password: msg.NewPass,
-	})
-	if err != nil {
-		return fmt.Errorf("更新密码失败: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClientWebSocket) sendError(conn *websocket.Conn, message string) {
-	response := struct {
-		Success bool   `json:"success"`
-		Error   string `json:"error"`
-	}{
-		Success: false,
-		Error:   message,
-	}
-	if err := conn.WriteJSON(response); err != nil {
-		log.Printf("发送错误消息失败: %v", err)
-	}
-}
-
-func (c *ClientWebSocket) sendSuccess(conn *websocket.Conn, message string) {
-	response := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{
-		Success: true,
-		Message: message,
-	}
-	if err := conn.WriteJSON(response); err != nil {
-		log.Printf("发送成功消息失败: %v", err)
-	}
 }

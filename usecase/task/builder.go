@@ -52,7 +52,7 @@ func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
 	}
 	newArr := make([]*config.InspNode, 0, len(res.Inspects))
 	for _, val := range res.Inspects {
-		if !notToDo[config.Identity(val.Name)] {
+		if !notToDo[config.Identity(val.Identity)] {
 			newArr = append(newArr, val)
 		}
 	}

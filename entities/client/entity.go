@@ -23,6 +23,6 @@ type User struct {
 type Client interface {
 	Init(url string) (Client, error)
 	Listen(ctx context.Context)
-	UpdateCallback(configType string, data any) error
+	UpdateCallback(ctx context.Context, configType string, data any) error
 	Close() error
 }

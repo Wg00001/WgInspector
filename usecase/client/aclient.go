@@ -6,6 +6,7 @@ import (
 	"WgInspector/usecase/config"
 	"context"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"sync"
 )
@@ -45,44 +46,43 @@ func Register(client client.Client) error {
 	return nil
 }
 
-func SendUpdate[T config2.ConfigType](data T) error {
-	name, err := config2.GetConfigTypeName(&data)
-	if err != nil {
-		return err
-	}
-	return cli.UpdateCallback(name, data)
+func CallBack(configType string, data any, omit *websocket.Conn) error {
+	return cli.UpdateCallback(context.WithValue(context.Background(), "exclude", omit), configType, data)
 }
 
-func GetMetaOfType[T config2.ConfigType](data T) error {
-	meta := GetConfigMeta()
+func GetResponseMeta[T config2.Id](data T) any {
+	config.RLock()
+	defer config.RUnlock()
 	switch any(data).(type) {
 	case config2.DBConfig:
-		return cli.UpdateCallback(config2.TypeDB, meta.DBs)
+		return sliceCopy(config.Meta.DBs)
 	case config2.LogConfig:
-		return cli.UpdateCallback(config2.TypeLog, GetConfigMeta().Logs)
+		return sliceCopy(config.Meta.Logs)
 	case config2.AlertConfig:
-		return cli.UpdateCallback(config2.TypeAlert, GetConfigMeta().Alerts)
+		return sliceCopy(config.Meta.Alerts)
 	case config2.TaskConfig:
-		return cli.UpdateCallback(config2.TypeTask, GetConfigMeta().Tasks)
+		return sliceCopy(config.Meta.Tasks)
 	case config2.AgentConfig:
-		return cli.UpdateCallback(config2.TypeAgent, GetConfigMeta().Agent)
+		return config.Meta.Agent
 	case config2.AgentTaskConfig:
-		return cli.UpdateCallback(config2.TypeAgentTask, GetConfigMeta().AgentTasks)
+		return sliceCopy(config.Meta.AgentTasks)
 	case config2.KnowledgeBaseConfig:
-		return cli.UpdateCallback(config2.TypeKBase, GetConfigMeta().KnowledgeBases)
+		return sliceCopy(config.Meta.KnowledgeBases)
 	case config2.InspTree:
-		return cli.UpdateCallback(config2.TypeInspector, GetConfigMeta().Insp)
+		return config.Meta.Insp
 	default:
 		return fmt.Errorf("unknown config type: %T", data)
 	}
-}
-
-func UpdateOrNew[T config2.ConfigType](newConfig T) error {
-	return nil
 }
 
 func GetConfigMeta() config2.ConfigMeta {
 	config.RLock()
 	defer config.RUnlock()
 	return config.Meta
+}
+
+func sliceCopy[T any](arr []T) []T {
+	res := make([]T, len(arr))
+	copy(res, arr)
+	return res
 }

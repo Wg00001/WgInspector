@@ -65,7 +65,7 @@ func SetConfigMeta(c config.ConfigMeta) error {
 	return nil
 }
 
-func AppendConfigs[T ParamType](configs ...T) (err error) {
+func AppendConfigs[T config.Id](configs ...T) (err error) {
 	mu.Lock()
 	defer mu.Unlock()
 	for i := range configs {
@@ -77,7 +77,10 @@ func AppendConfigs[T ParamType](configs ...T) (err error) {
 	return
 }
 
-func add[T config.ConfigType](cfg T) error {
+func add[T config.Id](cfg T) error {
+	if a, _ := Get(cfg); a != nil {
+		return fmt.Errorf("Append Config fail, config identity has been exist, Config: %v\n", cfg)
+	}
 	switch t := any(cfg).(type) {
 	case config.DBConfig:
 		Meta.DBs = append(Meta.DBs, t)
@@ -108,7 +111,7 @@ func add[T config.ConfigType](cfg T) error {
 	return nil
 }
 
-func Del[T ParamType](cfg T) error {
+func Del[T config.Id](cfg T) error {
 	mu.Lock()
 	defer mu.Unlock()
 	switch t := any(cfg).(type) {
@@ -116,16 +119,16 @@ func Del[T ParamType](cfg T) error {
 	//	Index.Default = &config.InitConfig{} // 非 map 类型保持清空值
 	case config.DBConfig:
 		delete(Index.DB, t.Identity)
-		removeFromSlice[config.DBConfig](Meta.DBs, t)
+		Meta.DBs = removeFromSlice[config.DBConfig](Meta.DBs, t)
 	case config.TaskConfig:
 		delete(Index.Task, t.Identity)
-		removeFromSlice[config.TaskConfig](Meta.Tasks, t)
+		Meta.Tasks = removeFromSlice[config.TaskConfig](Meta.Tasks, t)
 	case config.LogConfig:
 		delete(Index.Log, t.Identity)
-		removeFromSlice[config.LogConfig](Meta.Logs, t)
+		Meta.Logs = removeFromSlice[config.LogConfig](Meta.Logs, t)
 	case config.AlertConfig:
 		delete(Index.Alert, t.Identity)
-		removeFromSlice[config.AlertConfig](Meta.Alerts, t)
+		Meta.Alerts = removeFromSlice[config.AlertConfig](Meta.Alerts, t)
 	case config.AgentConfig:
 		Index.Agent = nil
 		Meta.Agent = config.AgentConfig{}
@@ -134,10 +137,10 @@ func Del[T ParamType](cfg T) error {
 		Meta.Insp = nil // 指针类型置空
 	case config.AgentTaskConfig:
 		delete(Index.AgentTask, t.Identity)
-		removeFromSlice[config.AgentTaskConfig](Meta.AgentTasks, t)
+		Meta.AgentTasks = removeFromSlice[config.AgentTaskConfig](Meta.AgentTasks, t)
 	case config.KnowledgeBaseConfig:
 		delete(Index.KBase, t.Identity)
-		removeFromSlice[config.KnowledgeBaseConfig](Meta.KnowledgeBases, t)
+		Meta.KnowledgeBases = removeFromSlice[config.KnowledgeBaseConfig](Meta.KnowledgeBases, t)
 	default:
 		return fmt.Errorf("type of config nonsupport to Del: %T", t) // 修正错误提示类型格式符
 	}
@@ -145,16 +148,16 @@ func Del[T ParamType](cfg T) error {
 }
 
 // O(n)
-func removeFromSlice[T config.Id](slice []T, cfg T) {
+func removeFromSlice[T config.Id](slice []T, cfg T) []T {
 	for i, item := range slice {
 		if item.GetIdentity() == cfg.GetIdentity() {
-			slice = append((slice)[:i], (slice)[i+1:]...)
-			break
+			return append(slice[:i], slice[i+1:]...)
 		}
 	}
+	return slice
 }
 
-func Get[T config.ConfigType](target T) (res *T, err error) {
+func Get[T config.Id](target T) (res *T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("config get fail: params = %#v", res)
@@ -197,12 +200,16 @@ func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) 
 }
 
 // Save : get or create
-func Save[T config.ConfigType](target T) error {
+func Save[T config.Id](target T) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("save config fail: %v", r)
+		}
+	}()
 	origin, err := Get(target)
 	if err != nil {
 		return AppendConfigs(target)
 	}
-	//todo：test
 	getPtrValue := reflect.ValueOf(origin)
 	if getPtrValue.Kind() != reflect.Ptr {
 		return fmt.Errorf("config center update fail: get value not prt")
@@ -214,7 +221,6 @@ func Save[T config.ConfigType](target T) error {
 	if !targetValue.Type().AssignableTo(getElemValue.Type()) {
 		return fmt.Errorf("config center update fail: type mismatch")
 	}
-
 	getElemValue.Set(targetValue)
-	return nil
+	return err
 }

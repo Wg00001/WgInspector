@@ -59,7 +59,7 @@ func (t *Task) Do(ctx context.Context) error {
 				Timestamp: time.Now(),
 				TaskName:  t.Config.Identity,
 				TaskID:    taskid,
-				InspName:  inspect.Name,
+				InspName:  inspect.Identity,
 				DBName:    tdb.Identity,
 				Result:    result,
 			})
@@ -70,7 +70,7 @@ func (t *Task) Do(ctx context.Context) error {
 				TaskName:  t.Config.Identity,
 				TaskID:    taskid,
 				DBName:    tdb.Identity,
-				InspName:  inspect.Name,
+				InspName:  inspect.Identity,
 				Result:    result,
 			})
 			//err = inspect.AlertFunc()

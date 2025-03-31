@@ -20,7 +20,7 @@ func (n NodeBuilder) Build() (config.InspNode, error) {
 }
 
 func (n NodeBuilder) WithName(name config.Identity) NodeBuilder {
-	n.Name = name
+	n.Identity = name
 	return n
 }
 

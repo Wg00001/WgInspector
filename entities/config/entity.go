@@ -103,7 +103,7 @@ type Cron struct {
 
 // AgentConfig 用户只能指定一个全局Ai，所有的分析均由此Ai完成
 type AgentConfig struct {
-	//AiName      Id
+	Identity
 	Driver        string
 	Url           string
 	ApiKey        string

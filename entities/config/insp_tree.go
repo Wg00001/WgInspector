@@ -14,7 +14,7 @@ import (
 
 // InspNode 分为Insp节点和索引节点，Insp节点也是叶子节点
 type InspNode struct {
-	Name     Identity
+	Identity
 	SQL      string
 	Children Map
 
@@ -27,6 +27,10 @@ type InspTree struct {
 	Roots   Map
 	Num     int         //Insp节点数量
 	AllInsp []*InspNode //所有的Insp节点
+}
+
+func (t *InspTree) GetIdentity() string {
+	return "InspTree"
 }
 
 type Map map[string]*InspNode
@@ -108,7 +112,7 @@ func (n *InspNode) AddChild(node *InspNode) error {
 	if n.Children == nil {
 		n.Children = make(Map)
 	}
-	n.Children[node.Name.Str()] = node
+	n.Children[node.Identity.Str()] = node
 	return nil
 }
 
@@ -122,7 +126,7 @@ func (t *InspTree) AddChild(path string, node *InspNode) error {
 	}
 	//根目录层
 	if path == "" {
-		t.Roots[node.Name.Str()] = node
+		t.Roots[node.Identity.Str()] = node
 		return nil
 	}
 
@@ -131,8 +135,8 @@ func (t *InspTree) AddChild(path string, node *InspNode) error {
 	if n == nil {
 		return fmt.Errorf("Insp tree err: path is not exist: %s\n", path)
 	}
-	if _, ok := n.Children[node.Name.Str()]; ok {
-		return fmt.Errorf("node is already exist, path: %s, name: %s \n", path, node.Name)
+	if _, ok := n.Children[node.Identity.Str()]; ok {
+		return fmt.Errorf("node is already exist, path: %s, name: %s \n", path, node.Identity)
 	}
 	return n.AddChild(node)
 }

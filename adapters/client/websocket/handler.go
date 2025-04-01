@@ -27,17 +27,22 @@ const (
 )
 
 type RequestMsg struct {
-	Action     string          `json:"action"`
-	ConfigType string          `json:"config_type,omitempty"`
+	MsgMeta
 	ConfigData json.RawMessage `json:"config_data,omitempty"`
 	OldPass    string          `json:"old_password,omitempty"`
 	NewPass    string          `json:"new_password,omitempty"`
 }
 
 type ResponseMsg struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Data    any    `json:"data"`
+	MsgMeta
+	Success    bool   `json:"success"`
+	Message    string `json:"message"`
+	ConfigData any    `json:"config_data"`
+}
+
+type MsgMeta struct {
+	Action     string `json:"action"`
+	ConfigType string `json:"config_type"`
 }
 
 func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
@@ -70,21 +75,21 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 
 		switch msg.Action {
 		case clientActionGet:
-			if msg.ConfigType == "meta" || msg.ConfigType == "" {
+			if msg.ConfigType == "Meta" || msg.ConfigType == "" {
 				config2.RLock()
-				logErr(clientActionGet, response(conn, client2.GetConfigMeta()))
+				logErr(clientActionGet, response(conn, msg.MsgMeta, client2.GetConfigMeta()))
 				config2.RUnlock()
 			} else {
-				logErr(clientActionGet, handler(conn, msg.ConfigType, nil, getHandler, responseWithoutCallback))
+				logErr(clientActionGet, handler(conn, msg, getHandler, response))
 			}
 		case clientActionSave:
-			logErr(clientActionSave, handler(conn, msg.ConfigType, msg.ConfigData, saveHandler, responseWithCallback))
+			logErr(clientActionSave, handler(conn, msg, saveHandler, responseWithCallback))
 		case clientActionDelete:
-			logErr(clientActionDelete, handler(conn, msg.ConfigType, msg.ConfigData, deleteHandler, responseWithCallback))
+			logErr(clientActionDelete, handler(conn, msg, deleteHandler, responseWithCallback))
 		case clientActionCreate:
-			logErr(clientActionCreate, handler(conn, msg.ConfigType, msg.ConfigData, createHandler, responseWithCallback))
+			logErr(clientActionCreate, handler(conn, msg, createHandler, responseWithCallback))
 		case clientActionChangePass:
-			logErr(clientActionChangePass, response(conn, c.handleChangePassword(conn, msg)))
+			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		default:
 			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 		}
@@ -92,61 +97,60 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 }
 
 type HandleFunc func(arg config.Id, err error) any
-type ResponseFunc func(conn *websocket.Conn, configType string, obj any) error
+type ResponseFunc func(conn *websocket.Conn, configType MsgMeta, obj any) error
 
 func handler(
 	conn *websocket.Conn,
-	configType string, configData json.RawMessage,
+	req RequestMsg,
 	handleFunc HandleFunc,
 	responseFunc ResponseFunc,
 ) (err error) {
-	switch configType {
+	switch req.ConfigType {
 	case config.TypeDB:
-		return responseFunc(conn, config.TypeDB, handleFunc(parseJson[config.DBConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.DBConfig](req.ConfigData)))
 	case config.TypeLog:
-		return responseFunc(conn, config.TypeLog, handleFunc(parseJson[config.LogConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.LogConfig](req.ConfigData)))
 	case config.TypeAlert:
-		return responseFunc(conn, config.TypeAlert, handleFunc(parseJson[config.AlertConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AlertConfig](req.ConfigData)))
 	case config.TypeTask:
-		return responseFunc(conn, config.TypeTask, handleFunc(parseJson[config.TaskConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.TaskConfig](req.ConfigData)))
 	case config.TypeAgent:
-		return responseFunc(conn, config.TypeAgent, handleFunc(parseJson[config.AgentConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AgentConfig](req.ConfigData)))
 	case config.TypeAgentTask:
-		return responseFunc(conn, config.TypeAgentTask, handleFunc(parseJson[config.AgentTaskConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AgentTaskConfig](req.ConfigData)))
 	case config.TypeKBase:
-		return responseFunc(conn, config.TypeKBase, handleFunc(parseJson[config.KnowledgeBaseConfig](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.KnowledgeBaseConfig](req.ConfigData)))
 	case config.TypeInspector:
-		return responseFunc(conn, config.TypeInspector, handleFunc(parseJson[config.InspNode](configData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.InspNode](req.ConfigData)))
 	default:
-		return fmt.Errorf("client - websocket: handle fail: type of configData not suppose: %s", configType)
+		return fmt.Errorf("client - websocket: handle fail: type of configData not suppose: %s", req.ConfigType)
 	}
 }
 
-func response(conn *websocket.Conn, obj any) error {
+func response(conn *websocket.Conn, msgMeta MsgMeta, obj any) error {
 	switch t := obj.(type) {
 	case error:
 		return conn.WriteJSON(ResponseMsg{
-			Success: false,
-			Message: t.Error(),
+			MsgMeta:    msgMeta,
+			Success:    false,
+			Message:    t.Error(),
+			ConfigData: t,
 		})
 	default:
 		return conn.WriteJSON(ResponseMsg{
-			Success: true,
-			Data:    obj,
+			MsgMeta:    msgMeta,
+			Success:    true,
+			ConfigData: obj,
 		})
 	}
 }
 
-func responseWithCallback(conn *websocket.Conn, configType string, obj any) error {
-	err := response(conn, obj)
+func responseWithCallback(conn *websocket.Conn, msgMeta MsgMeta, obj any) error {
+	err := response(conn, msgMeta, obj)
 	if err != nil {
 		return err
 	}
-	return client2.CallBack(configType, obj, conn)
-}
-
-func responseWithoutCallback(conn *websocket.Conn, _ string, obj any) error {
-	return response(conn, obj)
+	return client2.CallBack(msgMeta.ConfigType, obj, conn)
 }
 
 func parseJson[T config.Id](configData json.RawMessage) (T, error) {

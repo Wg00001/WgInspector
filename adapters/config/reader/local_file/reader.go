@@ -37,7 +37,6 @@ type ConfigReaderLocalFile struct {
 	TaskName   string
 	parser     config.Parser
 	meta       config.ConfigMeta
-	insp       *config.InspTree
 }
 
 var _ config.Reader = (*ConfigReaderLocalFile)(nil)

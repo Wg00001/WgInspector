@@ -112,7 +112,7 @@ func add[T config.Id](cfg T) error {
 		Index.Agent = &Meta.Agent
 	case *config.InspTree:
 		// 假设InspTree是单例，检查是否已存在
-		if Meta.Insp != nil && Meta.Insp.Num == 0 {
+		if Meta.Insp != nil && Meta.Insp.Num != 0 {
 			return fmt.Errorf("InspTree already exists")
 		}
 		Meta.Insp = t

@@ -68,13 +68,13 @@ type DBConfig struct {
 type LogConfig struct {
 	Identity
 	Driver string
-	Header map[string]string
+	Option map[string]string
 }
 
 type AlertConfig struct {
 	Identity
 	Driver string
-	Header map[string]string
+	Option map[string]string
 }
 
 // ---task(任务)相关配置

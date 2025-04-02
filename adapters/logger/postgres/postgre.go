@@ -31,11 +31,11 @@ type LogPostgre struct {
 var _ logger.Logger = (*LogPostgre)(nil)
 
 func (l LogPostgre) Init(cfg *config.LogConfig) (logger.Logger, error) {
-	dbName, ok := cfg.Header["dbname"]
+	dbName, ok := cfg.Option["dbname"]
 	if !ok {
 		return LogPostgre{}, fmt.Errorf("Log target db is not exist, dbName:%s\n", dbName)
 	}
-	tableName, ok := cfg.Header["tablename"]
+	tableName, ok := cfg.Option["tablename"]
 	if !ok {
 		tableName = "inspect_log"
 	}

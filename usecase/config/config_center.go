@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/config"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -180,10 +181,11 @@ func removeFromSlice[T config.Id](slice []T, cfg T) []T {
 	return slice
 }
 
-func Get[T config.Id](target T) (res *T, err error) {
+func Get[T config.Id](target T) (_ *T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("config get fail: params = %#v", res)
+			fmt.Println(r)
+			err = fmt.Errorf("config get fail: params = %#v", target)
 		}
 	}()
 	mu.RLock()
@@ -191,34 +193,42 @@ func Get[T config.Id](target T) (res *T, err error) {
 	var index any
 	switch t := any(target).(type) {
 	case config.InitConfig:
-		index = Index.Default
+		index = &Index.Default
 	case config.DBConfig:
-		index, err = getFromIndex(Index.DB, t.Identity)
+		index, err = getValueFromIndex(Index.DB, t.Identity)
 	case config.TaskConfig:
-		index, err = getFromIndex(Index.Task, t.Identity)
+		index, err = getValueFromIndex(Index.Task, t.Identity)
 	case config.LogConfig:
-		index, err = getFromIndex(Index.Log, t.Identity)
+		index, err = getValueFromIndex(Index.Log, t.Identity)
 	case config.AlertConfig:
-		index, err = getFromIndex(Index.Alert, t.Identity)
+		index, err = getValueFromIndex(Index.Alert, t.Identity)
 	case config.AgentConfig:
-		index = Index.Agent
+		index = &Index.Agent
 	case config.InspTree:
-		index = Meta.Insp // 直接返回指针
+		index = &Meta.Insp // 直接返回指针
 	case config.AgentTaskConfig:
-		index, err = getFromIndex(Index.AgentTask, t.Identity)
+		index, err = getValueFromIndex(Index.AgentTask, t.Identity)
 	case config.KnowledgeBaseConfig:
-		index, err = getFromIndex(Index.KBase, t.Identity)
+		index, err = getValueFromIndex(Index.KBase, t.Identity)
 	default:
-		err = fmt.Errorf("unsupported config type: %T", t)
+		err = fmt.Errorf("config center: get fail: unsupported config type: %T", t)
 	}
-	return (index).(*T), nil
+	if err != nil {
+		return nil, err
+	}
+	if res, ok := index.(T); ok {
+		return &res, nil
+	} else {
+		return nil, fmt.Errorf("config center: get fail: type can't turn")
+	}
 }
 
-func getFromIndex[T config.Id](index map[config.Identity]T, id config.Identity) (T, error) {
+func getValueFromIndex[T config.Id](index map[config.Identity]*T, id config.Identity) (_ T, err error) {
 	if res, ok := index[id]; ok {
-		return res, nil
+		return *res, nil
 	} else {
-		return res, fmt.Errorf("config center: index not exist: %s in %s ", id.GetIdentity(), index)
+		err = fmt.Errorf("index not exist: %s in %s ", id.GetIdentity(), reflect.TypeOf(index).String())
+		return
 	}
 }
 
@@ -229,10 +239,50 @@ func Save[T config.Id](target T) (err error) {
 			err = fmt.Errorf("save config fail: %v", r)
 		}
 	}()
-	origin, err := Get(target)
+	_, err = Get(target)
 	if err != nil {
-		return AppendConfigs(target)
+		if strings.Contains(err.Error(), "index not exist") {
+			return AppendConfigs(target)
+		} else {
+			return err
+		}
 	}
+	return Set(target)
+}
+
+func Set[T config.Id](target T) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+			err = fmt.Errorf("config set fail: params = %#v", target)
+		}
+	}()
+	mu.RLock()
+	defer mu.RUnlock()
+	var origin any
+	switch t := any(target).(type) {
+	case config.InitConfig:
+		origin = Index.Default
+	case config.DBConfig:
+		origin, err = getPtrFromIndex(Index.DB, t.Identity)
+	case config.TaskConfig:
+		origin, err = getPtrFromIndex(Index.Task, t.Identity)
+	case config.LogConfig:
+		origin, err = getPtrFromIndex(Index.Log, t.Identity)
+	case config.AlertConfig:
+		origin, err = getPtrFromIndex(Index.Alert, t.Identity)
+	case config.AgentConfig:
+		origin = Index.Agent
+	case config.InspTree:
+		origin = Meta.Insp // 直接返回指针
+	case config.AgentTaskConfig:
+		origin, err = getPtrFromIndex(Index.AgentTask, t.Identity)
+	case config.KnowledgeBaseConfig:
+		origin, err = getPtrFromIndex(Index.KBase, t.Identity)
+	default:
+		err = fmt.Errorf("config center: get fail: unsupported config type: %T", t)
+	}
+
 	getPtrValue := reflect.ValueOf(origin)
 	if getPtrValue.Kind() != reflect.Ptr {
 		return fmt.Errorf("config center update fail: get value not prt")
@@ -245,5 +295,13 @@ func Save[T config.Id](target T) (err error) {
 		return fmt.Errorf("config center update fail: type mismatch")
 	}
 	getElemValue.Set(targetValue)
-	return err
+	return
+}
+
+func getPtrFromIndex[T config.Id](index map[config.Identity]*T, id config.Identity) (*T, error) {
+	if res, ok := index[id]; ok {
+		return res, nil
+	} else {
+		return res, fmt.Errorf("index not exist: %s in %s ", id.GetIdentity(), reflect.TypeOf(index).String())
+	}
 }

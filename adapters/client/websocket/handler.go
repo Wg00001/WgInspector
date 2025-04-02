@@ -20,7 +20,7 @@ import (
 
 const (
 	clientActionGet        = "config_get"
-	clientActionSave       = "config_save"
+	clientActionUpdate     = "config_update"
 	clientActionDelete     = "config_delete"
 	clientActionCreate     = "config_create"
 	clientActionChangePass = "change_password"
@@ -82,8 +82,8 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 			} else {
 				logErr(clientActionGet, handler(conn, msg, getHandler, response))
 			}
-		case clientActionSave:
-			logErr(clientActionSave, handler(conn, msg, saveHandler, responseWithCallback))
+		case clientActionUpdate:
+			logErr(clientActionUpdate, handler(conn, msg, updateHandler, responseWithCallback))
 		case clientActionDelete:
 			logErr(clientActionDelete, handler(conn, msg, deleteHandler, responseWithCallback))
 		case clientActionCreate:
@@ -169,11 +169,11 @@ func getHandler(arg config.Id, err error) any {
 	return client2.GetResponseMeta(arg)
 }
 
-func saveHandler(arg config.Id, err error) any {
+func updateHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
-	err = config2.Save(arg)
+	err = config2.Set(arg)
 	if err != nil {
 		return err
 	}

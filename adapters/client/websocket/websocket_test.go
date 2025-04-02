@@ -121,7 +121,7 @@ func TestHandleConfigUpdate_DB(t *testing.T) {
 		// 发送config_update请求
 		newDBConfig := config.DBConfig{Driver: "new updated"}
 		req := map[string]interface{}{
-			"action":      clientActionSave,
+			"action":      clientActionUpdate,
 			"config_type": config.TypeDB,
 			"config_data": newDBConfig,
 		}

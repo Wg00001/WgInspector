@@ -67,11 +67,11 @@ func (c *ConfigYamlParser) ParseConfig(file []byte) (_ config.CommonConfigGroup,
 				cur := config.LogConfig{
 					Identity: config.NewIdentity(origin["identity"]),
 					Driver:   origin["driver"].(string),
-					Header:   make(map[string]string),
+					Option:   make(map[string]string),
 				}
 				for k, v := range origin {
 					if str, ok := v.(string); ok {
-						cur.Header[k] = str
+						cur.Option[k] = str
 					}
 				}
 				return cur
@@ -93,11 +93,11 @@ func (c *ConfigYamlParser) ParseConfig(file []byte) (_ config.CommonConfigGroup,
 				cur := config.AlertConfig{
 					Identity: config.NewIdentity(origin["identity"]),
 					Driver:   origin["driver"].(string),
-					Header:   make(map[string]string),
+					Option:   make(map[string]string),
 				}
 				for k, v := range origin {
 					if str, ok := v.(string); ok {
-						cur.Header[k] = str
+						cur.Option[k] = str
 					}
 				}
 				return cur

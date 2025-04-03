@@ -55,7 +55,7 @@ func (t *Task) Do(ctx context.Context) error {
 			}
 
 			//记录
-			logger2.Get(t.Config.LogID).Log(logger.Content{
+			logger2.Get(t.Config.TargetLogID).Log(logger.Content{
 				Timestamp: time.Now(),
 				TaskName:  t.Config.Identity,
 				TaskID:    taskid,

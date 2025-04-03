@@ -3,12 +3,12 @@ package cron
 import (
 	"WgInspector/entities/config"
 	"WgInspector/entities/task"
+	"WgInspector/usecase/task/cron"
 	"context"
 	"fmt"
 	"github.com/go-co-op/gocron/v2"
 	"log"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -18,36 +18,37 @@ import (
  * @date 2025/2/14
  */
 
-var (
-	s  gocron.Scheduler
-	mu sync.Mutex
-)
+func init() {
+	c := new(Cron)
+	c.Init()
+	cron.Use(c)
+}
 
-func Init() {
-	mu.Lock()
-	defer mu.Unlock()
+type Cron struct {
+	s gocron.Scheduler
+}
+
+var _ task.Cron = (*Cron)(nil)
+
+func (c *Cron) Init() error {
 	sTemp, err := gocron.NewScheduler(
 		gocron.WithLocation(time.Local), // 设置时区
 		gocron.WithGlobalJobOptions(),   // 全局任务选项
 	)
 	if err != nil {
-		log.Printf("initScheduler失败！: %v", err)
-		panic("initScheduler失败！: " + err.Error())
+		return fmt.Errorf("init cron Scheduler fail！: %v", err)
 	}
-	s = sTemp
-	log.Println("cron: init")
-	return
+	c.s = sTemp
+	return nil
 }
 
-func AddTask(task task.Task) {
-	mu.Lock()
-	defer mu.Unlock()
+func (c *Cron) AddTask(task task.Task) {
 	definition, err := jobDefinition(task.GetCron())
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	_, err = s.NewJob(
+	_, err = c.s.NewJob(
 		definition,
 		gocron.NewTask(func() {
 			err := task.Do(context.Background())
@@ -63,13 +64,12 @@ func AddTask(task task.Task) {
 	}
 }
 
-func Start() {
-	s.Start()
-	log.Println("cron: start...")
+func (c *Cron) Start() {
+	c.s.Start()
 }
 
-func Exit() {
-	err := s.StopJobs()
+func (c *Cron) Exit() {
+	err := c.s.StopJobs()
 	if err != nil {
 		log.Println("cron: " + err.Error())
 		return
@@ -77,7 +77,7 @@ func Exit() {
 	log.Println("cron: exit")
 }
 
-func Monitor() {
+func (c *Cron) Monitor() {
 
 }
 

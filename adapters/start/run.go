@@ -1,7 +1,7 @@
 package start
 
 import (
-	"WgInspector/adapters/cron"
+	"WgInspector/usecase/task/cron"
 	"context"
 )
 

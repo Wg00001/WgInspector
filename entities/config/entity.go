@@ -84,8 +84,8 @@ type TaskConfig struct {
 	Cron         *Cron
 	AllInspector bool
 
-	LogID    Identity
-	TargetDB []Identity
+	TargetLogID Identity
+	TargetDB    []Identity
 
 	Todo    []Identity
 	NotTodo []Identity

@@ -10,6 +10,9 @@ DB:
   - Identity: "example2"
     Driver: "postgres"
     DSN: "host=127.0.0.1 port=5432 user=postgres dbname=postgres password=03719 sslmode=disable"
+  - Identity: "example3"
+    Driver: "postgres"
+    DSN: "host=127.0.0.1 port=5432 user=postgres dbname=postgres password=03719 sslmode=disable"
 
 Table:
   - Identity: "example_table1"

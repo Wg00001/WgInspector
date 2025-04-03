@@ -1,7 +1,6 @@
 package start
 
 import (
-	"WgInspector/adapters/cron"
 	"WgInspector/usecase/agent"
 	"WgInspector/usecase/agent/analyzer"
 	"WgInspector/usecase/agent/kbase"
@@ -10,6 +9,7 @@ import (
 	"WgInspector/usecase/db"
 	"WgInspector/usecase/logger"
 	"WgInspector/usecase/task"
+	"WgInspector/usecase/task/cron"
 	"WgInspector/utils"
 	"fmt"
 	"github.com/wg00001/wgo-sdk/wg"
@@ -24,6 +24,7 @@ import (
 	_ "WgInspector/adapters/alerter/default"
 	_ "WgInspector/adapters/alerter/empty"
 	_ "WgInspector/adapters/alerter/feishu"
+
 	_ "WgInspector/adapters/client"
 	_ "WgInspector/adapters/client/websocket"
 
@@ -34,6 +35,8 @@ import (
 
 	_ "WgInspector/adapters/logger/default"
 	_ "WgInspector/adapters/logger/postgres"
+
+	_ "WgInspector/adapters/cron"
 )
 
 /**
@@ -70,7 +73,6 @@ func Init(optionFuncArr ...utils.OptionFunc) {
 		}
 	}
 
-	cron.Init()
 	printErr(InitLogger())
 	printErr(InitTask())
 	printErr(InitAlert())
@@ -163,10 +165,5 @@ func InitKBase() error {
 			return err
 		}
 	}
-	return nil
-}
-
-func InitCron() error {
-	cron.Init()
 	return nil
 }

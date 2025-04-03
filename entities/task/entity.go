@@ -17,3 +17,10 @@ type Task interface {
 	GetCron() *config.Cron
 	Identity() config.Identity
 }
+
+type Cron interface {
+	Init() error
+	AddTask(task Task)
+	Start()
+	Exit()
+}

@@ -19,6 +19,25 @@ import (
  * @date 2025/3/6
  */
 
+type InspLogAnalysis struct {
+	Metrics    string `json:"metrics"`
+	Belongs    string `json:"belongs"`
+	Status     string `json:"status"`
+	Trend      string `json:"trend"`
+	Problem    string `json:"problem"`
+	Suggestion string `json:"suggestion"`
+}
+
+func (a *InspLogAnalysis) String() string {
+	res, _ := json.Marshal(a)
+	return string(res)
+}
+
+type AnalysisReport struct {
+	InspectLogAnalyze []InspLogAnalysis `json:"inspect_log_analysis"`
+	ExtendSuggestion  []string          `json:"extend_suggestion"`
+}
+
 func buildAiAlertContent(t *AgentTask, msg string) *alerter2.Content {
 	return &alerter2.Content{
 		TimeStamp: time.Now(),

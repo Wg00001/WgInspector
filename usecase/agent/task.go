@@ -12,8 +12,10 @@ import (
 	"WgInspector/usecase/client"
 	"WgInspector/usecase/logger"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 /**
@@ -68,7 +70,19 @@ func (t *AgentTask) Do(context.Context) error {
 		return err
 	}
 
-	//6.1 自学习（将巡检结果发进知识库）
+	//5.1 格式验证
+	var report AnalysisReport
+	err = json.Unmarshal([]byte(res), &report)
+	if err != nil {
+		return err
+	}
+
+	//6.1 自学习（将巡检结果发进知识库以及发给用户确认）
+	go client.Notice(client2.NoticeContent{
+		Content:     res,
+		Time:        time.Now(),
+		ConfirmStat: client2.Unread,
+	})
 
 	//6.2 将ai结果发送给Alert
 	return alerter.GetAlert(t.AlertID).Send(*buildAiAlertContent(t, res))
@@ -113,20 +127,7 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 	return formatKBaseContent(kDocs, t.KBaseMaxLen), nil
 }
 
-// KBaseSave 保存到知识库中
-func KBaseSave(msg string) error {
-	//todo:置信度评估
-	//todo: 对比去重
-	//人工审核已通过
-	//1. 关键词提取
-
-	//2. 持久化&发送确认
-	return client.Notice(client2.NoticeContent{
-		Content:     "",
-		ConfirmStat: client2.Unread,
-	})
-}
-
 func (t *AgentTask) KBaseSave(agent agent.Document) {
 	//入库
+
 }

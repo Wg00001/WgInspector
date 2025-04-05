@@ -27,8 +27,10 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("初始化 SQLite 认证失败: %v", err))
 	}
-	client2.UseAuth(auth)
+	client2.UseAuthor(auth)
 }
+
+var _ client.Author = (*SQLiteAuth)(nil)
 
 func NewSQLiteAuth() (*SQLiteAuth, error) {
 	// 分离文件路径和 DSN

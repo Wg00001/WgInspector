@@ -20,8 +20,8 @@ type Document struct {
 
 type KnowledgeBase interface {
 	Init(config *config.KnowledgeBaseConfig) (KnowledgeBase, error)
-	WriteIn(docs []*Document) error
-	Search(queries QueryData) ([]*Document, error)
+	WriteIn(docs []Document) error //将文档写入知识库
+	Search(queries QueryData) ([]Document, error)
 	Embedding(query string) ([]float32, error)
 	//SimilaritySearch(topK int, embedding []float32) ([]*Document, error)
 }

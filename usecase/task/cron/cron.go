@@ -49,9 +49,8 @@ func Exit() {
 	globalCron.Exit()
 }
 
-type TaskStat struct {
-}
-
-func Monitor() {
-
+func Monitor() ([]task.Stat, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	return globalCron.Monitor()
 }

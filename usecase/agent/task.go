@@ -2,12 +2,14 @@ package agent
 
 import (
 	"WgInspector/entities/agent"
+	client2 "WgInspector/entities/client"
 	"WgInspector/entities/config"
 	"WgInspector/entities/task"
 	"WgInspector/usecase/agent/analyzer"
 	"WgInspector/usecase/agent/format"
 	"WgInspector/usecase/agent/kbase"
 	"WgInspector/usecase/alerter"
+	"WgInspector/usecase/client"
 	"WgInspector/usecase/logger"
 	"context"
 	"fmt"
@@ -94,14 +96,9 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 		return nil, err
 	}
 
-	var kDocs []*agent.Document
+	var kDocs []agent.Document
 	for _, kb := range t.KBase {
 		kbaseObj := kbase.Get(kb)
-		//根据KBase对应的嵌入向量生成器，生成相应的嵌入向量
-		//embeddingQuery, err := kbaseObj.Embedding(query)
-		//if err != nil {
-		//	return nil, err
-		//}
 		if kbaseObj == nil {
 			return nil, fmt.Errorf("agent task : kbase not exist")
 		}
@@ -116,10 +113,20 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 	return formatKBaseContent(kDocs, t.KBaseMaxLen), nil
 }
 
-func (t *AgentTask) KBaseSave() {
+// KBaseSave 保存到知识库中
+func KBaseSave(msg string) error {
 	//todo:置信度评估
-	//todo:关键词提取
-	//对比去重
-	//人工审核
+	//todo: 对比去重
+	//人工审核已通过
+	//1. 关键词提取
+
+	//2. 持久化&发送确认
+	return client.Notice(client2.NoticeContent{
+		Content:     "",
+		ConfirmStat: client2.Unread,
+	})
+}
+
+func (t *AgentTask) KBaseSave(agent agent.Document) {
 	//入库
 }

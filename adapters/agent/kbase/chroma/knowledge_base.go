@@ -88,7 +88,7 @@ func (k KBaseChroma) Init(cfg *config.KnowledgeBaseConfig) (_ agent.KnowledgeBas
 	return k, nil
 }
 
-func (k KBaseChroma) WriteIn(docs []*agent.Document) error {
+func (k KBaseChroma) WriteIn(docs []agent.Document) error {
 	if docs == nil || len(docs) == 0 {
 		return fmt.Errorf("agent - kbase: chroma write in fail: can't write nil document")
 	}
@@ -118,7 +118,7 @@ func (k KBaseChroma) WriteIn(docs []*agent.Document) error {
 	return nil
 }
 
-func (k KBaseChroma) Search(queries agent.QueryData) ([]*agent.Document, error) {
+func (k KBaseChroma) Search(queries agent.QueryData) ([]agent.Document, error) {
 	ctx := context.Background()
 
 	collection, err := k.connect(ctx)
@@ -136,27 +136,13 @@ func (k KBaseChroma) Search(queries agent.QueryData) ([]*agent.Document, error) 
 		types.WithWhereDocumentMap(query.whereDocMap()),
 		types.WithInclude(types.IDocuments, types.IMetadatas),
 	)
-	//results, err := collection.QueryWithOptions(
-	//	ctx,
-	//	types.WithQueryTexts(query.text()),
-	//	types.WithNResults(int32(query.topk)),
-	//	types.WithWhereMap(map[string]interface{}{
-	//		"author": map[string]interface{}{
-	//			"$eq": "张三",
-	//		},
-	//	}),
-	//	types.WithWhereDocumentMap(map[string]interface{}{
-	//		"$contains": "并发",
-	//	}),
-	//	types.WithInclude(types.IDocuments, types.IMetadatas),
-	//)
 	if err != nil {
 		return nil, err
 	}
 	return parseQueryResults(results), nil
 }
 
-func (k KBaseChroma) SimilaritySearch(topK int, embedding []float32) ([]*agent.Document, error) {
+func (k KBaseChroma) SimilaritySearch(topK int, embedding []float32) ([]agent.Document, error) {
 	if len(embedding) == 0 {
 		return nil, fmt.Errorf("empty embedding")
 	}
@@ -212,8 +198,8 @@ func (k KBaseChroma) connect(ctx context.Context) (*chromago.Collection, error) 
 	return collection, nil
 }
 
-func parseQueryResults(results *chromago.QueryResults) []*agent.Document {
-	var docs []*agent.Document
+func parseQueryResults(results *chromago.QueryResults) []agent.Document {
+	var docs []agent.Document
 	if results == nil {
 		return docs
 	}
@@ -226,7 +212,7 @@ func parseQueryResults(results *chromago.QueryResults) []*agent.Document {
 				continue
 			}
 
-			doc := &agent.Document{
+			doc := agent.Document{
 				ID:       results.Ids[qIdx][i],
 				Content:  results.Documents[qIdx][i],
 				Metadata: results.Metadatas[qIdx][i],

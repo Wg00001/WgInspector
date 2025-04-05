@@ -51,7 +51,6 @@ func generateQueryWithAI(logContent *string) (*agent.QueryData, error) {
 	res, err := analyzer.Analyze(&agent.AnalyzeContent{
 		SystemMsg: utils.DefaultKBaseSystemMessage,
 		UserMsg:   *logContent,
-		KBaseMsg:  "",
 	})
 	if err != nil {
 		return nil, err
@@ -68,14 +67,14 @@ func generateQueryWithAI(logContent *string) (*agent.QueryData, error) {
 
 // 混合检索 - 结合关键词和向量检索
 // todo: 入参改为Query结构体
-func hybridSearch(kbase agent.KnowledgeBase, query string, embedding []float32, topK int) ([]*agent.Document, error) {
+func hybridSearch(kbase agent.KnowledgeBase, query string, embedding []float32, topK int) ([]agent.Document, error) {
 	// 并行执行两种检索
 	keywordResults, _ := kbase.Search(agent.NewQueryData())
 	//vectorResults, _ := kbase.Search(topK/2, embedding)
 	vectorResults, _ := kbase.Search(agent.NewQueryData())
 	// 结果去重合并
 	idx := wg.SliceToSet(keywordResults,
-		func(document *agent.Document) string {
+		func(document agent.Document) string {
 			return document.ID
 		})
 	for _, vr := range vectorResults {
@@ -87,7 +86,7 @@ func hybridSearch(kbase agent.KnowledgeBase, query string, embedding []float32, 
 }
 
 // 生成知识上下文（辅助函数）
-func formatKBaseContent(docs []*agent.Document, maxLen int) *string {
+func formatKBaseContent(docs []agent.Document, maxLen int) *string {
 	var buf strings.Builder
 	currentLen := 0
 

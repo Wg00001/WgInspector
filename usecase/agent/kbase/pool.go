@@ -36,3 +36,22 @@ func Get(name config.Identity) agent.KnowledgeBase {
 	}
 	return t
 }
+
+func Save(docs []agent.Document) (err error) {
+	pool.Range(func(key, value any) bool {
+		val, ok := value.(agent.KnowledgeBase)
+		if !ok {
+			err = fmt.Errorf("type turn fail")
+			return false
+		}
+		err = val.WriteIn(docs)
+		if err != nil {
+			return false
+		}
+		return true
+	})
+	if err != nil {
+		err = fmt.Errorf("kbase save fail: %s", err)
+	}
+	return
+}

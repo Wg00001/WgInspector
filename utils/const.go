@@ -36,8 +36,7 @@ const DefaultKBaseSystemMessage string = `
 	3. 识别日志中的最早时间戳（格式：RFC3339）
 	4. 尝试识别以下元数据字段（如存在）：
 	   - DBname: 数据库名称
-	   - taskName: 任务名称
-	   - insp_name: 检查名称
+	   - inspect_target: 巡检的目标字段名
 	
 	输出格式要求：
 	{
@@ -46,8 +45,7 @@ const DefaultKBaseSystemMessage string = `
 	  "KeyWords": ["关键词1", "关键词2", ...],
 	  "MetaData": {
 		"DBname": "识别值（如未找到则不包含该字段）",
-		"taskName": "识别值（如未找到则不包含该字段）",
-		"insp_name": "识别值（如未找到则不包含该字段）"
+		"inspect_target": "识别值（如未找到则不包含该字段）",
 	  }
 	}
 	

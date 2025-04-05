@@ -3,6 +3,7 @@ package websocket
 import (
 	"WgInspector/entities/client"
 	"WgInspector/entities/config"
+	"WgInspector/usecase/agent"
 	client2 "WgInspector/usecase/client"
 	config2 "WgInspector/usecase/config"
 	"encoding/json"
@@ -24,15 +25,20 @@ const (
 	clientActionDelete     = "config_delete"
 	clientActionCreate     = "config_create"
 	clientActionChangePass = "change_password"
+	clientNoticeConfirm    = "notice_confirm"
+	clientNoticeGet        = "notice_get"
 )
 
+// 请求过来的数据的格式
 type RequestMsg struct {
 	MsgMeta
 	ConfigData json.RawMessage `json:"config_data,omitempty"`
 	OldPass    string          `json:"old_password,omitempty"`
 	NewPass    string          `json:"new_password,omitempty"`
+	Confirm    bool            `json:"confirm,omitempty"`
 }
 
+// 发送过去的响应的格式
 type ResponseMsg struct {
 	MsgMeta
 	Success    bool   `json:"success"`
@@ -90,6 +96,10 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 			logErr(clientActionCreate, handler(conn, msg, createHandler, responseWithCallback))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
+		case clientNoticeConfirm:
+			logErr(clientActionChangePass, handleNoticeConfirm(conn, msg))
+		case clientNoticeGet:
+			logErr(clientNoticeGet, handleNoticeGet(conn, msg))
 		default:
 			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 		}
@@ -233,4 +243,44 @@ func logErr(action string, err error) {
 	if err != nil {
 		log.Printf("handle action '%s' fail: %s", action, err)
 	}
+}
+
+func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg) error {
+	var temp client.NoticeContent
+	err := json.Unmarshal(msg.ConfigData, &temp)
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	if msg.ConfigType == "kbase" && msg.Confirm {
+		err = agent.KBaseSave(temp.Content)
+		if err != nil {
+			response(conn, msg.MsgMeta, err)
+			return err
+		}
+	}
+	err = client2.UpdateNotice(temp)
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	return response(conn, msg.MsgMeta, "success")
+}
+
+func handleNoticeGet(conn *websocket.Conn, msg RequestMsg) error {
+	pages := struct {
+		Page     int `json:"page"`
+		PageSize int `json:"page_size"`
+	}{}
+	err := json.Unmarshal(msg.ConfigData, &pages)
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	notices, err := client2.GetNotice(pages.Page, pages.PageSize)
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	return response(conn, msg.MsgMeta, notices)
 }

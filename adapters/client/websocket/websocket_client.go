@@ -273,19 +273,16 @@ func (c *ClientWebSocket) Close() error {
 	return c.server.Close()
 }
 
-type Send struct {
-	Action string `json:"action"`
-	Type   string `json:"type"`
-	Data   any    `json:"data"`
-}
-
 // UpdateCallback 服务端向客户端发送配置更新
 func (c *ClientWebSocket) UpdateCallback(ctx context.Context, configType string, data any) error {
 	marshal, err := json.Marshal(
-		Send{
-			Action: "config_update",
-			Type:   configType,
-			Data:   data,
+		ResponseMsg{
+			MsgMeta: MsgMeta{
+				Action:     "config_save",
+				ConfigType: configType,
+			},
+			Success:    true,
+			ConfigData: data,
 		})
 	if err != nil {
 		return err
@@ -320,4 +317,29 @@ func (c *ClientWebSocket) Listen(context.Context) {
 			log.Printf("client: server Listen fail: %v\n", err)
 		}
 	}()
+}
+
+func (c *ClientWebSocket) Notice(content client.NoticeContent) error {
+	marshal, err := json.Marshal(
+		ResponseMsg{
+			MsgMeta: MsgMeta{
+				Action: "notice",
+			},
+			Success:    true,
+			ConfigData: content,
+		})
+	if err != nil {
+		return err
+	}
+
+	c.connMutex.RLock()
+	defer c.connMutex.RUnlock()
+	for conn, info := range c.conns {
+		err = conn.WriteMessage(websocket.TextMessage, marshal)
+		if err != nil {
+			log.Printf("向用户 %s 发送消息失败: %v", info.username, err)
+			continue
+		}
+	}
+	return nil
 }

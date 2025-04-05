@@ -3,6 +3,7 @@ package task
 import (
 	"WgInspector/entities/config"
 	"context"
+	"time"
 )
 
 /**
@@ -23,4 +24,13 @@ type Cron interface {
 	AddTask(task Task)
 	Start()
 	Exit()
+	Monitor() ([]Stat, error)
+}
+
+type Stat struct {
+	TaskName  string
+	Running   bool
+	NextStart time.Time
+	LastStart time.Time
+	ErrorLog  []error
 }

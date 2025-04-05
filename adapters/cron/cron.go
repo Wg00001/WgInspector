@@ -77,8 +77,24 @@ func (c *Cron) Exit() {
 	log.Println("cron: exit")
 }
 
-func (c *Cron) Monitor() {
-
+func (c *Cron) Monitor() ([]task.Stat, error) {
+	res := make([]task.Stat, 0, len(c.s.Jobs()))
+	for _, job := range c.s.Jobs() {
+		nextRun, err := job.NextRun()
+		if err != nil {
+			return nil, err
+		}
+		lastRun, err := job.LastRun()
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, task.Stat{
+			TaskName:  job.Name(),
+			NextStart: nextRun,
+			LastStart: lastRun,
+		})
+	}
+	return res, nil
 }
 
 // 将task中的时间设置读取到cron的对象中

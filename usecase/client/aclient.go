@@ -86,3 +86,15 @@ func sliceCopy[T any](arr []T) []T {
 	copy(res, arr)
 	return res
 }
+
+func Notice(content client.NoticeContent) error {
+	//1. 持久化
+	err := CreateNotice(content)
+	if err != nil {
+		return err
+	}
+	//2. 发送给用户客户端
+	mu.Unlock()
+	defer mu.Unlock()
+	return cli.Notice(content)
+}

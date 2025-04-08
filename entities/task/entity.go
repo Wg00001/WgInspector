@@ -24,13 +24,13 @@ type Cron interface {
 	AddTask(task Task)
 	Start()
 	Exit()
-	Monitor() ([]Stat, error)
+	Monitor(ctx context.Context) (<-chan []Stat, error)
 }
 
 type Stat struct {
+	UUID      string
 	TaskName  string
-	Running   bool
 	NextStart time.Time
 	LastStart time.Time
-	ErrorLog  []error
+	//Error     error
 }

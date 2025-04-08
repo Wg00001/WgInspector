@@ -6,11 +6,14 @@ import (
 	"WgInspector/usecase/agent"
 	client2 "WgInspector/usecase/client"
 	config2 "WgInspector/usecase/config"
+	"WgInspector/usecase/task/cron"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"reflect"
+	"sync"
 )
 
 /**
@@ -27,6 +30,8 @@ const (
 	clientActionChangePass = "change_password"
 	clientNoticeConfirm    = "notice_confirm"
 	clientNoticeGet        = "notice_get"
+	clientTaskListen       = "task_listen"
+	clientTaskClose        = "task_close"
 )
 
 // 请求过来的数据的格式
@@ -48,7 +53,7 @@ type ResponseMsg struct {
 
 type MsgMeta struct {
 	Action     string `json:"action"`
-	ConfigType string `json:"config_type"`
+	ConfigType string `json:"config_type,omitempty"`
 }
 
 func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
@@ -59,7 +64,11 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 		c.updateConnectionTime(conn)
 		return nil
 	})
-
+	var taskCtx context.Context
+	taskCtxCancel := func() {}
+	defer func() {
+		taskCtxCancel()
+	}()
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -97,9 +106,16 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
-			logErr(clientActionChangePass, handleNoticeConfirm(conn, msg))
+			logErr(clientNoticeConfirm, handleNoticeConfirm(conn, msg))
 		case clientNoticeGet:
+			msg.ConfigData = message
 			logErr(clientNoticeGet, handleNoticeGet(conn, msg))
+		case clientTaskListen:
+			taskCtxCancel()
+			taskCtx, taskCtxCancel = context.WithCancel(context.Background())
+			logErr(clientTaskListen, handleGetTaskStatus(taskCtx, conn, msg))
+		case clientTaskClose:
+			taskCtxCancel()
 		default:
 			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 		}
@@ -137,7 +153,11 @@ func handler(
 	}
 }
 
+var writeMu sync.Mutex
+
 func response(conn *websocket.Conn, msgMeta MsgMeta, obj any) error {
+	writeMu.Lock()
+	defer writeMu.Unlock()
 	switch t := obj.(type) {
 	case error:
 		return conn.WriteJSON(ResponseMsg{
@@ -252,7 +272,7 @@ func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg) error {
 		response(conn, msg.MsgMeta, err)
 		return err
 	}
-	if msg.ConfigType == "kbase" && msg.Confirm {
+	if msg.Confirm {
 		err = agent.KBaseSave(temp.Content)
 		if err != nil {
 			response(conn, msg.MsgMeta, err)
@@ -264,6 +284,7 @@ func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg) error {
 		response(conn, msg.MsgMeta, err)
 		return err
 	}
+	//若要提高性能，可以客户端只返回id，服务端用id读取更新数据库并保存入知识库中。
 	return response(conn, msg.MsgMeta, "success")
 }
 
@@ -283,4 +304,33 @@ func handleNoticeGet(conn *websocket.Conn, msg RequestMsg) error {
 		return err
 	}
 	return response(conn, msg.MsgMeta, notices)
+}
+
+func handleGetTaskStatus(parentCtx context.Context, conn *websocket.Conn, msg RequestMsg) error {
+	ctx, f := context.WithCancel(parentCtx)
+	ch, err := cron.Monitor(ctx)
+	if err != nil {
+		f()
+		return err
+	}
+	go func() {
+		defer f() //取消context
+		for {
+			select {
+			case <-parentCtx.Done():
+				return
+			default:
+			}
+			status, ok := <-ch
+			if !ok {
+				return
+			}
+			err := response(conn, msg.MsgMeta, status)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+	return nil
 }

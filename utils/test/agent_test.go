@@ -86,7 +86,7 @@ func TestKBase(t *testing.T) {
 	fmt.Printf("%+v\n", kb)
 
 	// 准备测试数据
-	testDocs := []*agent.Document{
+	testDocs := []agent.Document{
 		{
 			ID:      "doc5",
 			Content: "Go语言并发编程指南2",
@@ -117,7 +117,7 @@ func TestKBase(t *testing.T) {
 
 		// 无效文档测试
 		t.Run("InvalidDocument", func(t *testing.T) {
-			invalidDocs := []*agent.Document{{ID: ""}}
+			invalidDocs := []agent.Document{{ID: ""}}
 			err := kb.WriteIn(invalidDocs)
 			if err == nil {
 				t.Error("Expected error for invalid document")

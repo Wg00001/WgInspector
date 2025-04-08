@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -25,19 +27,22 @@ func init() {
 }
 
 type Cron struct {
-	s gocron.Scheduler
+	s            gocron.Scheduler
+	monitorChans map[chan<- []task.Stat]context.Context
+	mu           sync.RWMutex
 }
 
 var _ task.Cron = (*Cron)(nil)
 
 func (c *Cron) Init() error {
 	sTemp, err := gocron.NewScheduler(
-		gocron.WithLocation(time.Local), // 设置时区
-		gocron.WithGlobalJobOptions(),   // 全局任务选项
+		gocron.WithLocation(time.Local),                                           // 设置时区
+		gocron.WithGlobalJobOptions(gocron.WithEventListeners(c.afterListener())), // 全局任务选项
 	)
 	if err != nil {
 		return fmt.Errorf("init cron Scheduler fail！: %v", err)
 	}
+	c.monitorChans = make(map[chan<- []task.Stat]context.Context)
 	c.s = sTemp
 	return nil
 }
@@ -77,7 +82,57 @@ func (c *Cron) Exit() {
 	log.Println("cron: exit")
 }
 
-func (c *Cron) Monitor() ([]task.Stat, error) {
+func (c *Cron) afterListener() gocron.EventListener {
+	return gocron.AfterJobRuns(func(uuid.UUID, string) {
+		stats, err := c.jobStats()
+		if err != nil {
+			log.Printf("cron after Listener: %s", err)
+			return
+		}
+		var toDelete []chan<- []task.Stat
+		var wg sync.WaitGroup
+		c.mu.RLock()
+		for ch, ctx := range c.monitorChans {
+			wg.Add(1)
+			go func(ch chan<- []task.Stat, ctx context.Context) {
+				defer wg.Done()
+				select {
+				case <-ctx.Done():
+					toDelete = append(toDelete, ch)
+					close(ch)
+				default:
+					select {
+					case ch <- stats:
+					default:
+					}
+				}
+			}(ch, ctx)
+		}
+		wg.Wait()
+		c.mu.RUnlock()
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		for _, ch := range toDelete {
+			delete(c.monitorChans, ch)
+		}
+	})
+}
+
+// Monitor 调用时传入context，当context.Done时服务端关闭此通道的发送
+func (c *Cron) Monitor(ctx context.Context) (<-chan []task.Stat, error) {
+	stats, err := c.jobStats()
+	if err != nil {
+		return nil, err
+	}
+	resChan := make(chan []task.Stat, 8)
+	resChan <- stats
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.monitorChans[resChan] = ctx
+	return resChan, nil
+}
+
+func (c *Cron) jobStats() ([]task.Stat, error) {
 	res := make([]task.Stat, 0, len(c.s.Jobs()))
 	for _, job := range c.s.Jobs() {
 		nextRun, err := job.NextRun()
@@ -89,6 +144,7 @@ func (c *Cron) Monitor() ([]task.Stat, error) {
 			return nil, err
 		}
 		res = append(res, task.Stat{
+			UUID:      job.ID().String(),
 			TaskName:  job.Name(),
 			NextStart: nextRun,
 			LastStart: lastRun,

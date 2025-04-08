@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/agent"
 	"WgInspector/usecase/agent/kbase"
 	"encoding/json"
+	"fmt"
 )
 
 /**
@@ -23,7 +24,7 @@ func KBaseSave(msg string) error {
 	var report AnalysisReport
 	err := json.Unmarshal([]byte(msg), &report)
 	if err != nil {
-		return err
+		return fmt.Errorf("Kbase save fail: %s\n", err)
 	}
 
 	//2. 格式转换

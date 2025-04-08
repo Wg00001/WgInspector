@@ -1,6 +1,7 @@
 package start
 
 import (
+	"WgInspector/usecase/client"
 	"WgInspector/usecase/task/cron"
 	"context"
 )
@@ -13,9 +14,11 @@ import (
 
 func Run(ctx context.Context) {
 	cron.Start()
+	client.Listen(ctx)
+
 	select {
 	case <-ctx.Done():
+		client.Close()
 		cron.Exit()
-		break
 	}
 }

@@ -79,6 +79,10 @@ func Init(optionFuncArr ...utils.OptionFunc) {
 	printErr(InitAiConfig())
 	printErr(InitAiTask())
 	printErr(InitKBase())
+	//printErr(client.Use(config.InitConfig{
+	//	ClientDriver: "websocket",
+	//	ClientURL:    "ws://127.0.0.1:9999",
+	//}))
 	log.Println("====== System Init Completely ======")
 }
 

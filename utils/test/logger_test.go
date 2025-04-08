@@ -1,9 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/cron"
 	"WgInspector/adapters/start"
-	"WgInspector/usecase/task"
 	"context"
 	"testing"
 )
@@ -15,9 +13,9 @@ import (
  */
 
 func TestLogger(t *testing.T) {
-	cron.Init()
-	cron.AddTask(task.Get("task1"))
-	cron.Start()
+	//cron.Init()
+	//cron.AddTask(task.Get("task1"))
+	//cron.Start()
 	select {}
 }
 

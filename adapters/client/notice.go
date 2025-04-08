@@ -5,6 +5,8 @@ import (
 	client2 "WgInspector/usecase/client"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -30,6 +32,9 @@ func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
 		filePath = "./app/notice.db"
 		dsn      = "file:" + filePath
 	)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return nil, fmt.Errorf("创建数据库目录失败: %w", err)
+	}
 
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -44,6 +49,7 @@ func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
 		time         DATETIME NOT NULL,
 		confirm_stat TEXT NOT NULL DEFAULT 'Unread'
 			CHECK(confirm_stat IN ('Unread', 'Read', 'UnConfirm', 'Allow', 'NotAllow'))
+	);
 	`
 
 	if _, err := db.Exec(createTableSQL); err != nil {

@@ -2,6 +2,7 @@ package cron
 
 import (
 	"WgInspector/entities/task"
+	"context"
 	"log"
 	"sync"
 )
@@ -49,8 +50,8 @@ func Exit() {
 	globalCron.Exit()
 }
 
-func Monitor() ([]task.Stat, error) {
+func Monitor(ctx context.Context) (<-chan []task.Stat, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	return globalCron.Monitor()
+	return globalCron.Monitor(ctx)
 }

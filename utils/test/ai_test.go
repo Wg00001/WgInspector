@@ -2,7 +2,6 @@ package test
 
 import (
 	"WgInspector/adapters/agent/analyzer/ollama"
-	"WgInspector/adapters/cron"
 	"WgInspector/adapters/start"
 	"WgInspector/entities/agent"
 	"WgInspector/entities/config"
@@ -44,7 +43,6 @@ func TestAiTask(t *testing.T) {
 		"filepath": "../../app/config",
 	}))
 	fmt.Println(start.InitDB())
-	cron.Init()
 	fmt.Println(start.InitLogger())
 	fmt.Println(start.InitAlert())
 	//fmt.Println(start.InitAi())

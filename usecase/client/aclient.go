@@ -94,7 +94,7 @@ func Notice(content client.NoticeContent) error {
 		return err
 	}
 	//2. 发送给用户客户端
-	mu.Unlock()
+	mu.Lock()
 	defer mu.Unlock()
 	return cli.Notice(content)
 }

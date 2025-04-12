@@ -13,17 +13,29 @@ import (
  * @date 2025/3/4
  */
 
-func Open(driverName string, option map[string]string) error {
-	//todo: option封装
-	reader, err := GetReader(driverName)
+func UseDriver(initConfig config.InitConfig) error {
+	r, err := GetReader(initConfig.ConfigReader)
 	if err != nil {
 		return err
 	}
-	reader, err = reader.NewReader(option)
+	r, err = r.NewReader(initConfig.Option)
 	if err != nil {
 		return err
 	}
-	err = reader.ReadConfig()
+	readerDriverMu.Lock()
+	defer readerDriverMu.Unlock()
+	reader = r
+	return nil
+}
+
+var (
+	reader         config.Reader
+	readerDrivers  = make(map[string]config.Reader)
+	readerDriverMu sync.RWMutex
+)
+
+func LoadConfig() error {
+	err := reader.ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -31,11 +43,6 @@ func Open(driverName string, option map[string]string) error {
 	log.Println("config initiated...")
 	return nil
 }
-
-var (
-	readerDrivers  = make(map[string]config.Reader)
-	readerDriverMu sync.RWMutex
-)
 
 func RegisterReader(name string, driver config.Reader) {
 	readerDriverMu.Lock()

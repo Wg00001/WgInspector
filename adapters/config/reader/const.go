@@ -7,5 +7,5 @@ package reader
  */
 
 const (
-	OptionParser = "parser"
+	OptionParser = "config_parser"
 )

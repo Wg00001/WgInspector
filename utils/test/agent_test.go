@@ -21,13 +21,13 @@ import (
 
 func TestFullAgentRAU(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "local_file")
-	start.Init()
+	start.InitOld()
 	start.Run(context.Background())
 }
 
 func TestAgentRAU(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 	//start.Run(context.Background())
 	nt := agent2.NewTask(&config.AgentTaskConfig{
 		Identity: "agent_test",
@@ -61,7 +61,7 @@ func TestAgentRAU(t *testing.T) {
 
 func TestKBase(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 
 	// 初始化测试配置
 	cfg := config.KnowledgeBaseConfig{

@@ -21,6 +21,6 @@ func TestLogger(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 	start.Run(context.TODO())
 }

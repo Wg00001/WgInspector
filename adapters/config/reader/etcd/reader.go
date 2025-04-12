@@ -86,7 +86,8 @@ func readAndParse[T config.ConfigType](c *ConfigReaderEtcd) []T {
 		return nil
 	}
 	key := "config/" + name
-	resp, err := c.client.Get(c.ctx, key)
+	ctx, _ := context.WithTimeout(c.ctx, time.Second*3)
+	resp, err := c.client.Get(ctx, key)
 	if err != nil || len(resp.Kvs) == 0 {
 		return nil
 	}

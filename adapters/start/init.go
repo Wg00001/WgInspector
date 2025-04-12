@@ -1,6 +1,7 @@
 package start
 
 import (
+	"WgInspector/entities/config"
 	"WgInspector/usecase/agent"
 	"WgInspector/usecase/agent/analyzer"
 	"WgInspector/usecase/agent/kbase"
@@ -45,16 +46,59 @@ import (
  * @date 2025/2/17
  */
 
-func Init(optionFuncArr ...utils.OptionFunc) {
+func Init(initConfig config.InitConfig) {
+	log.SetFlags(log.LstdFlags)
+	err := config2.UseDriver(initConfig)
+	if err != nil {
+		panic(fmt.Sprintf("config use fail: %s", err))
+	}
+	err = config2.LoadConfig()
+	if err != nil {
+		panic(fmt.Sprintf("config load fail: %s", err))
+	}
+	err = InitDB()
+	if err != nil {
+		panic(fmt.Sprintf("db init fail: %s", err))
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			db.CloseAll()
+			panic(r)
+		}
+	}()
+	printErr := func(err error) {
+		if err != nil {
+			panic(fmt.Sprintf("!!!!! System init fail !!!!!\n!!!!! Err :%s\n\n", err))
+		}
+	}
+
+	printErr(InitLogger())
+	printErr(InitTask())
+	printErr(InitAlert())
+	printErr(InitAiConfig())
+	printErr(InitAiTask())
+	printErr(InitKBase())
+	//printErr(client.Use(config.InitConfig{
+	//	ClientDriver: "websocket",
+	//	ClientURL:    "ws://127.0.0.1:9999",
+	//}))
+	log.Println("====== System Init Completely ======")
+}
+
+func InitOld(optionFuncArr ...utils.OptionFunc) {
 	log.SetFlags(log.LstdFlags)
 
 	opt := make(utils.Option)
 	opt.With(optionFuncArr...)
 	localFileOptFunc(opt)
-
-	err := config2.Open(opt.GetOrDefault("config_reader", "local_file"), opt)
+	err := config2.UseDriver(config.InitConfig{})
 	if err != nil {
-		panic(fmt.Sprintf("config open fail: %s", err))
+		panic(fmt.Sprintf("config use fail: %s", err))
+	}
+	err = config2.LoadConfig()
+	if err != nil {
+		panic(fmt.Sprintf("config load fail: %s", err))
 	}
 	err = InitDB()
 	if err != nil {

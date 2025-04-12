@@ -98,11 +98,11 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 				logErr(clientActionGet, handler(conn, msg, getHandler, response))
 			}
 		case clientActionUpdate:
-			logErr(clientActionUpdate, handler(conn, msg, updateHandler, responseWithCallback))
+			logErr(clientActionUpdate, handler(conn, msg, updateHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
 		case clientActionDelete:
-			logErr(clientActionDelete, handler(conn, msg, deleteHandler, responseWithCallback))
+			logErr(clientActionDelete, handler(conn, msg, deleteHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
 		case clientActionCreate:
-			logErr(clientActionCreate, handler(conn, msg, createHandler, responseWithCallback))
+			logErr(clientActionCreate, handler(conn, msg, createHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
@@ -259,9 +259,12 @@ func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg Request
 	return nil
 }
 
-func logErr(action string, err error) {
-	if err != nil {
-		log.Printf("handle action '%s' fail: %s", action, err)
+func logErr(action string, errs ...error) {
+	for _, e := range errs {
+		if e != nil {
+			log.Printf("handle action '%s' fail: %s", action, errs)
+			return
+		}
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 func Benchmark(b *testing.B) {
 	b.ReportAllocs()
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 	start.Run(context.TODO())
 }
 
@@ -24,7 +24,7 @@ func TestPProf(t *testing.T) {
 	defer pprof.StopCPUProfile()
 
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second*15)
 	start.Run(ctx)
 }
@@ -32,7 +32,7 @@ func TestPProf(t *testing.T) {
 func TestRuntime(t *testing.T) {
 	RuntimeMemStats(t, func() {
 		start.SetLocalConfigReaderOption("../../app/config", "yaml")
-		start.Init()
+		start.InitOld()
 		start.Run(context.TODO())
 	})
 }

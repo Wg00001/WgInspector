@@ -17,7 +17,7 @@ import (
 
 func TestNotice(t *testing.T) {
 	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.Init()
+	start.InitOld()
 	//start.Run(context.TODO())
 	t.Run("send", func(t *testing.T) {
 		client.CreateNotice(client2.NoticeContent{

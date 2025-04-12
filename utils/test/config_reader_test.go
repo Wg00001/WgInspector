@@ -12,5 +12,5 @@ import (
  */
 
 func TestETCD(t *testing.T) {
-	start.Init()
+	start.InitOld()
 }

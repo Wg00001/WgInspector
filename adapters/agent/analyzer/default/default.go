@@ -14,19 +14,18 @@ import (
 
 func init() {
 	ai2.RegisterDriver("default", AnalyzerDefault{})
+	ai2.RegisterDriver("", AnalyzerDefault{})
 }
 
 type AnalyzerDefault struct {
 }
 
-func (a AnalyzerDefault) Init(config *config.AgentConfig) (agent.Analyzer, error) {
-	//TODO implement me
-	panic("implement me")
+func (a AnalyzerDefault) Init(*config.AgentConfig) (agent.Analyzer, error) {
+	return AnalyzerDefault{}, nil
 }
 
-func (a AnalyzerDefault) Analyze(s *agent.AnalyzeContent) (string, error) {
-	//TODO implement me
-	panic("implement me")
+func (a AnalyzerDefault) Analyze(*agent.AnalyzeContent) (string, error) {
+	return "analyzer didn't define", nil
 }
 
 var _ agent.Analyzer = (*AnalyzerDefault)(nil)

@@ -35,6 +35,7 @@ func NewTask(taskConfig *config.AgentTaskConfig) *AgentTask {
 var _ task.Task = (*AgentTask)(nil)
 
 func (t *AgentTask) Do(context.Context) error {
+
 	//1. 获取日志
 	contents, err := logger.Get(t.LogID).ReadLog(t.LogFilter)
 	if err != nil {
@@ -125,9 +126,4 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 		kDocs = append(kDocs, resDocs...)
 	}
 	return formatKBaseContent(kDocs, t.KBaseMaxLen), nil
-}
-
-func (t *AgentTask) KBaseSave(agent agent.Document) {
-	//入库
-
 }

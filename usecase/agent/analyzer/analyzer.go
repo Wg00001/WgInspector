@@ -24,7 +24,7 @@ func Register(oa agent.Analyzer) {
 	mu.Lock()
 	defer mu.Unlock()
 	a = oa
-	log.Printf("openai: registry: %#v\n", oa)
+	log.Printf("analyzer: registry: %#v\n", oa)
 }
 
 func Analyze(content *agent.AnalyzeContent) (string, error) {

@@ -91,14 +91,7 @@ func startServices() {
 	mainCtx = ctx
 	mainCancel = cancel
 
-	start.Init(func(opt utils.Option) {
-		opt["config_reader"] = global.ConfigReader
-		opt["config_parser"] = global.ConfigParser
-		opt["client_driver"] = global.ClientDriver
-		opt["client_url"] = global.ClientURL
-		opt.WithOption(global.Option)
-	})
-
+	start.Init(global)
 	if err := client.Use(global); err != nil {
 		log.Printf("[ERROR] Client init: %v", err)
 		return

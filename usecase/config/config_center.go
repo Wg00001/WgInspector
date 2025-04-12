@@ -4,7 +4,6 @@ import (
 	"WgInspector/entities/config"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 )
 
@@ -232,24 +231,6 @@ func getValueFromIndex[T config.Id](index map[config.Identity]*T, id config.Iden
 	}
 }
 
-// Save : get or create
-func Save[T config.Id](target T) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("save config fail: %v", r)
-		}
-	}()
-	_, err = Get(target)
-	if err != nil {
-		if strings.Contains(err.Error(), "index not exist") {
-			return AppendConfigs(target)
-		} else {
-			return err
-		}
-	}
-	return Set(target)
-}
-
 func Set[T config.Id](target T) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -304,4 +285,8 @@ func getPtrFromIndex[T config.Id](index map[config.Identity]*T, id config.Identi
 	} else {
 		return res, fmt.Errorf("index not exist: %s in %s ", id.GetIdentity(), reflect.TypeOf(index).String())
 	}
+}
+
+func SaveConfig(configType string) error {
+	return reader.SaveConfig(configType)
 }

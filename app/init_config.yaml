@@ -1,6 +1,8 @@
-config_reader: local_file
+config_reader: etcd
 config_parser: yaml
 client_driver: websocket
-client_url: "ws://127.0.0.1:9999/"
+client_url: "ws://0.0.0.0:9999/"
 option:
   filepath: "./app/config"
+  etcd_endpoint: "http://127.0.0.1:2379"
+#  etcd_endpoint: "http://host.docker.internal:2379"

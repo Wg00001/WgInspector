@@ -58,7 +58,7 @@ func Init(initConfig config.InitConfig) {
 	}
 	err = InitDB()
 	if err != nil {
-		panic(fmt.Sprintf("db init fail: %s", err))
+		fmt.Printf("db init fail: %s\n", err)
 	}
 
 	defer func() {
@@ -69,7 +69,7 @@ func Init(initConfig config.InitConfig) {
 	}()
 	printErr := func(err error) {
 		if err != nil {
-			panic(fmt.Sprintf("!!!!! System init fail !!!!!\n!!!!! Err :%s\n\n", err))
+			fmt.Printf("!!!!! System init fail !!!!!\n!!!!! Err :%s\n\n", err)
 		}
 	}
 

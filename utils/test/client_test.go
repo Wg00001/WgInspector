@@ -1,7 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	"WgInspector/entities/config"
 	"WgInspector/usecase/client"
 	"context"
@@ -14,8 +14,8 @@ import (
  * @date 2025/3/26
  */
 func TestClientWebsocketStart(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "local_file")
-	start.InitOld()
+	start2.SetLocalConfigReaderOption("../../app/config", "local_file")
+	start2.InitOld()
 	err := client.Use(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws://127.0.0.1:9999",

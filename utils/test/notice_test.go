@@ -1,7 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	client2 "WgInspector/entities/client"
 	"WgInspector/usecase/client"
 	"context"
@@ -16,8 +16,8 @@ import (
  */
 
 func TestNotice(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
 	//start.Run(context.TODO())
 	t.Run("send", func(t *testing.T) {
 		client.CreateNotice(client2.NoticeContent{

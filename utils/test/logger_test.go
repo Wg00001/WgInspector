@@ -1,7 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	"context"
 	"testing"
 )
@@ -20,7 +20,7 @@ func TestLogger(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
-	start.Run(context.TODO())
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
+	start2.Run(context.TODO())
 }

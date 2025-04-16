@@ -1,7 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/start"
+	"WgInspector/app/start"
 	"testing"
 )
 

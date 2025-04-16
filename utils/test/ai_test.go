@@ -2,7 +2,7 @@ package test
 
 import (
 	"WgInspector/adapters/agent/analyzer/ollama"
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	"WgInspector/entities/agent"
 	"WgInspector/entities/config"
 	ai2 "WgInspector/usecase/agent"
@@ -43,9 +43,9 @@ func TestAiTask(t *testing.T) {
 	//	"filepath": "../../app/config",
 	//}))
 	fmt.Println(config2.LoadConfig())
-	fmt.Println(start.InitDB())
-	fmt.Println(start.InitLogger())
-	fmt.Println(start.InitAlert())
+	fmt.Println(start2.InitDB())
+	fmt.Println(start2.InitLogger())
+	fmt.Println(start2.InitAlert())
 	//fmt.Println(start.InitAi())
 	err := analyzer.Use(*config2.Index.Agent)
 	if err != nil {
@@ -67,7 +67,7 @@ func TestAiTask(t *testing.T) {
 }
 
 func TestAi(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
-	start.Run(context.TODO())
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
+	start2.Run(context.TODO())
 }

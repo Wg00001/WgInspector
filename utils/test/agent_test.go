@@ -2,7 +2,7 @@ package test
 
 import (
 	_ "WgInspector/adapters/agent/kbase/chroma"
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	"WgInspector/entities/agent"
 	"WgInspector/entities/config"
 	agent2 "WgInspector/usecase/agent"
@@ -20,14 +20,14 @@ import (
  */
 
 func TestFullAgentRAU(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "local_file")
-	start.InitOld()
-	start.Run(context.Background())
+	start2.SetLocalConfigReaderOption("../../app/config", "local_file")
+	start2.InitOld()
+	start2.Run(context.Background())
 }
 
 func TestAgentRAU(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
 	//start.Run(context.Background())
 	nt := agent2.NewTask(&config.AgentTaskConfig{
 		Identity: "agent_test",
@@ -60,8 +60,8 @@ func TestAgentRAU(t *testing.T) {
 }
 
 func TestKBase(t *testing.T) {
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
 
 	// 初始化测试配置
 	cfg := config.KnowledgeBaseConfig{

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"WgInspector/adapters/start"
 	"WgInspector/app/cli"
+	"WgInspector/app/start"
 	"WgInspector/entities/config"
 	"WgInspector/usecase/client"
 	"WgInspector/usecase/db"

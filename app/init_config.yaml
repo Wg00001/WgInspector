@@ -1,4 +1,4 @@
-config_reader: etcd
+config_reader: local_file
 config_parser: yaml
 client_driver: websocket
 client_url: "ws://0.0.0.0:9999/"

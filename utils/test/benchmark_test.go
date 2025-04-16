@@ -1,7 +1,7 @@
 package test
 
 import (
-	"WgInspector/adapters/start"
+	start2 "WgInspector/app/start"
 	"context"
 	"os"
 	"runtime"
@@ -12,9 +12,9 @@ import (
 
 func Benchmark(b *testing.B) {
 	b.ReportAllocs()
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
-	start.Run(context.TODO())
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
+	start2.Run(context.TODO())
 }
 
 func TestPProf(t *testing.T) {
@@ -23,17 +23,17 @@ func TestPProf(t *testing.T) {
 	pprof.WriteHeapProfile(f)
 	defer pprof.StopCPUProfile()
 
-	start.SetLocalConfigReaderOption("../../app/config", "yaml")
-	start.InitOld()
+	start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+	start2.InitOld()
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second*15)
-	start.Run(ctx)
+	start2.Run(ctx)
 }
 
 func TestRuntime(t *testing.T) {
 	RuntimeMemStats(t, func() {
-		start.SetLocalConfigReaderOption("../../app/config", "yaml")
-		start.InitOld()
-		start.Run(context.TODO())
+		start2.SetLocalConfigReaderOption("../../app/config", "yaml")
+		start2.InitOld()
+		start2.Run(context.TODO())
 	})
 }
 

@@ -47,12 +47,14 @@ func (c *Cron) Init() error {
 	return nil
 }
 
-func (c *Cron) AddTask(task task.Task) {
+func (c *Cron) AddTask(task task.Task) error {
 	definition, err := jobDefinition(task.GetCron())
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
+	u := uuid.NewSHA1(uuid.NameSpaceOID, []byte(task.Identity().Str()))
+	c.s.RemoveJob(u)
+
 	_, err = c.s.NewJob(
 		definition,
 		gocron.NewTask(func() {
@@ -63,10 +65,9 @@ func (c *Cron) AddTask(task task.Task) {
 			}
 		}), // 任务函数和参数
 		gocron.WithName(task.Identity().Str()),
+		gocron.WithIdentifier(u),
 	)
-	if err != nil {
-		log.Println(err)
-	}
+	return err
 }
 
 func (c *Cron) Start() {
@@ -220,4 +221,15 @@ func parseAtTime(t string) (uint, uint, uint) {
 		l = r
 	}
 	return uint(temp[0]), uint(temp[1]), uint(temp[2])
+}
+
+func (c *Cron) DoNow(key string) error {
+	//u := uuid.NewSHA1(uuid.NameSpaceOID, []byte(key))
+
+	for _, job := range c.s.Jobs() {
+		if job.ID().String() == key {
+			return job.RunNow()
+		}
+	}
+	return fmt.Errorf("task not exist: %s\n", key)
 }

@@ -32,6 +32,7 @@ const (
 	clientNoticeGet        = "notice_get"
 	clientTaskListen       = "task_listen"
 	clientTaskClose        = "task_close"
+	clientTaskDo           = "task_do"
 )
 
 // 请求过来的数据的格式
@@ -56,7 +57,7 @@ type MsgMeta struct {
 	ConfigType string `json:"config_type,omitempty"`
 }
 
-func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
+func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user client.User) {
 	defer c.closeConnection(conn, "连接结束")
 
 	// 设置消息处理函数
@@ -88,6 +89,13 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 			continue
 		}
 
+		handleFunc := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
+			if user.Level < authLevel {
+				return response(conn, msg.MsgMeta, fmt.Errorf("no permission"))
+			}
+			return handler(conn, msg, handleFunc, responseFunc)
+		}
+
 		switch msg.Action {
 		case clientActionGet:
 			if msg.ConfigType == "Meta" || msg.ConfigType == "" {
@@ -95,18 +103,18 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 				logErr(clientActionGet, response(conn, msg.MsgMeta, client2.GetConfigMeta()))
 				config2.RUnlock()
 			} else {
-				logErr(clientActionGet, handler(conn, msg, getHandler, response))
+				logErr(clientActionGet, handleFunc(getHandler, response, 0))
 			}
 		case clientActionUpdate:
-			logErr(clientActionUpdate, handler(conn, msg, updateHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionUpdate, handleFunc(updateHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
 		case clientActionDelete:
-			logErr(clientActionDelete, handler(conn, msg, deleteHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionDelete, handleFunc(deleteHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
 		case clientActionCreate:
-			logErr(clientActionCreate, handler(conn, msg, createHandler, responseWithCallback), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionCreate, handleFunc(createHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
-			logErr(clientNoticeConfirm, handleNoticeConfirm(conn, msg))
+			logErr(clientNoticeConfirm, handleNoticeConfirm(conn, msg, user))
 		case clientNoticeGet:
 			msg.ConfigData = message
 			logErr(clientNoticeGet, handleNoticeGet(conn, msg))
@@ -116,6 +124,8 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn) {
 			logErr(clientTaskListen, handleGetTaskStatus(taskCtx, conn, msg))
 		case clientTaskClose:
 			taskCtxCancel()
+		case clientTaskDo:
+			logErr(clientTaskDo, handleTaskDo(conn, msg))
 		default:
 			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 		}
@@ -268,13 +278,14 @@ func logErr(action string, errs ...error) {
 	}
 }
 
-func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg) error {
+func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg, user client.User) error {
 	var temp client.NoticeContent
 	err := json.Unmarshal(msg.ConfigData, &temp)
 	if err != nil {
 		response(conn, msg.MsgMeta, err)
 		return err
 	}
+	temp.UpdatedBy = user.UserName
 	if msg.Confirm {
 		err = agent.KBaseSave(temp.Content)
 		if err != nil {
@@ -336,4 +347,18 @@ func handleGetTaskStatus(parentCtx context.Context, conn *websocket.Conn, msg Re
 		}
 	}()
 	return nil
+}
+
+func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
+	var taskId string
+	err := json.Unmarshal(msg.ConfigData, &taskId)
+	if err != nil {
+		return err
+	}
+	err = cron.DoNow(taskId)
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	return response(conn, msg.MsgMeta, "success")
 }

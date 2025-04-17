@@ -6,11 +6,9 @@ import (
 	"database/sql"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	_ "modernc.org/sqlite"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 const (
@@ -50,10 +48,11 @@ func NewSQLiteAuth() (*SQLiteAuth, error) {
 
 	// 创建用户表（IF NOT EXISTS 确保幂等性）
 	_, err = db.Exec(`
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT NOT NULL
-        )
+		CREATE TABLE IF NOT EXISTS users (
+			username TEXT PRIMARY KEY,
+			password TEXT NOT NULL,
+			level INTEGER NOT NULL DEFAULT 0  -- 0表示false，1表示true
+		)
     `)
 	if err != nil {
 		db.Close()
@@ -62,34 +61,12 @@ func NewSQLiteAuth() (*SQLiteAuth, error) {
 
 	auth := &SQLiteAuth{db: db}
 
-	// 检查默认用户（带错误重试机制）
-	const maxRetries = 3
-	for i := 0; i < maxRetries; i++ {
-		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-		if err == nil {
-			if count == 0 {
-				if err := auth.NewUser(client.User{
-					UserName: defaultUsername,
-					Password: defaultPassword,
-				}); err != nil {
-					db.Close()
-					return nil, fmt.Errorf("创建默认用户失败: %w", err)
-				}
-				log.Printf("已创建默认用户，用户名: %s, 密码: %s", defaultUsername, defaultPassword)
-			}
-			break
-		}
-
-		// 增强型错误检测（兼容 modernc 的错误信息）
-		if i < maxRetries-1 && err.Error() == "database is locked" {
-			time.Sleep(100 * time.Millisecond)
-			continue
-		}
-		db.Close()
-		return nil, fmt.Errorf("检查用户数量失败: %w", err)
-	}
-
+	//没默认用户时会新建默认用户
+	auth.NewUser(client.User{
+		UserName: defaultUsername,
+		Password: defaultPassword,
+		Level:    client.AuthLevelAdmin,
+	})
 	return auth, nil
 }
 
@@ -98,11 +75,11 @@ func (a *SQLiteAuth) Close() error {
 }
 
 func (a *SQLiteAuth) Auth(username, password string) (client.User, error) {
-	var user client.User
 	var hashedPassword string
+	var admin int
 
-	err := a.db.QueryRow("SELECT username, password FROM users WHERE username = ?", username).
-		Scan(&user.UserName, &hashedPassword)
+	err := a.db.QueryRow("SELECT password, level FROM users WHERE username = ?", username).
+		Scan(&hashedPassword, &admin)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return client.User{}, fmt.Errorf("用户不存在")
@@ -114,8 +91,10 @@ func (a *SQLiteAuth) Auth(username, password string) (client.User, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
 		return client.User{}, fmt.Errorf("密码错误")
 	}
-
-	return user, nil
+	return client.User{
+		UserName: username,
+		Level:    admin,
+	}, nil
 }
 
 func (a *SQLiteAuth) NewUser(user client.User) error {
@@ -136,8 +115,8 @@ func (a *SQLiteAuth) NewUser(user client.User) error {
 	}
 
 	// 插入新用户
-	_, err = a.db.Exec("INSERT INTO users (username, password) VALUES (?, ?)",
-		user.UserName, string(hashedPassword))
+	_, err = a.db.Exec("INSERT INTO users (username, password, level) VALUES (?, ?, ?)",
+		user.UserName, string(hashedPassword), user.Level)
 	if err != nil {
 		return fmt.Errorf("创建用户失败: %w", err)
 	}
@@ -187,8 +166,8 @@ func (a *SQLiteAuth) UpdateUser(user client.User) error {
 	}
 
 	// 更新用户密码
-	_, err = a.db.Exec("UPDATE users SET password = ? WHERE username = ?",
-		string(hashedPassword), user.UserName)
+	_, err = a.db.Exec("UPDATE users SET password = ?,level = ? WHERE username = ?",
+		string(hashedPassword), user.Level, user.UserName)
 	if err != nil {
 		return fmt.Errorf("更新用户失败: %w", err)
 	}

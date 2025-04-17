@@ -1,8 +1,10 @@
 package cron
 
 import (
+	"WgInspector/entities/config"
 	"WgInspector/entities/task"
 	"context"
+	"fmt"
 	"log"
 	"sync"
 )
@@ -16,6 +18,7 @@ import (
 var (
 	globalCron task.Cron
 	mu         sync.RWMutex
+	tasks      = make(map[config.Identity]task.Task)
 )
 
 func Use(c task.Cron) {
@@ -31,10 +34,11 @@ func Use(c task.Cron) {
 	log.Println("cron register and init...")
 }
 
-func AddTask(task task.Task) {
+func AddTask(task task.Task) error {
 	mu.Lock()
 	defer mu.Unlock()
-	globalCron.AddTask(task)
+	tasks[task.Identity()] = task
+	return globalCron.AddTask(task)
 }
 
 func Start() {
@@ -54,4 +58,15 @@ func Monitor(ctx context.Context) (<-chan []task.Stat, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return globalCron.Monitor(ctx)
+}
+
+func DoNow(id string) error {
+	mu.RLock()
+	defer mu.RUnlock()
+	t, ok := tasks[config.Identity(id)]
+	if !ok {
+		return fmt.Errorf("task not exist")
+	}
+	return t.Do(context.Background())
+	//return globalCron.DoNow(key)
 }

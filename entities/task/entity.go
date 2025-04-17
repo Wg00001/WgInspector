@@ -21,10 +21,11 @@ type Task interface {
 
 type Cron interface {
 	Init() error
-	AddTask(task Task)
+	AddTask(task Task) error
 	Start()
 	Exit()
 	Monitor(ctx context.Context) (<-chan []Stat, error)
+	DoNow(string) error
 }
 
 type Stat struct {

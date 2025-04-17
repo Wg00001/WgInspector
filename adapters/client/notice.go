@@ -48,7 +48,9 @@ func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
 		content      TEXT NOT NULL,
 		time         DATETIME NOT NULL,
 		confirm_stat TEXT NOT NULL DEFAULT 'Unread'
-			CHECK(confirm_stat IN ('Unread', 'Read', 'UnConfirm', 'Allow', 'NotAllow'))
+			CHECK(confirm_stat IN ('Unread', 'Read', 'UnConfirm', 'Allow', 'NotAllow')),
+	    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    	updated_by      TEXT NOT NULL DEFAULT 'System'
 	);
 	`
 

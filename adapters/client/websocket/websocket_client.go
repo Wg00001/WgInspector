@@ -77,7 +77,7 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 			log.Printf("WebSocket 升级失败: %v", err)
 			return
 		}
-
+		var currentUser client.User
 		// 等待认证消息
 		authenticated := make(chan bool, 1)
 		go func() {
@@ -172,7 +172,7 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 				authenticated <- false
 				return
 			}
-
+			currentUser = user
 			// 认证成功
 			conn.WriteJSON(map[string]interface{}{
 				"action":  "authenticate_response",
@@ -212,7 +212,7 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 				// 启动心跳检测
 				go c.startPing(conn)
 				// 处理 WebSocket 消息
-				go c.handleWebSocketConnection(conn)
+				go c.handleWebSocketConnection(conn, currentUser)
 			}
 		case <-time.After(10 * time.Second):
 			log.Println("认证超时")

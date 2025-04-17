@@ -11,6 +11,11 @@ import (
  * @date 2025/3/17
  */
 
+const (
+	AuthLevelUser = iota
+	AuthLevelAdmin
+)
+
 // 身份验证
 type Author interface {
 	Auth(username, password string) (User, error)
@@ -22,6 +27,7 @@ type Author interface {
 type User struct {
 	UserName string
 	Password string
+	Level    int
 }
 
 // 客户端
@@ -46,6 +52,8 @@ type NoticeContent struct {
 	Content     string
 	Time        time.Time
 	ConfirmStat string
+	UpdatedAt   time.Time
+	UpdatedBy   string
 }
 
 type NoticeDB interface {

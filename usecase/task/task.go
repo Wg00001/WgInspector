@@ -55,24 +55,28 @@ func (t *Task) Do(ctx context.Context) error {
 			}
 
 			//记录
-			logger2.Get(t.Config.TargetLogID).Log(logger.Content{
-				Timestamp: time.Now(),
-				TaskName:  t.Config.Identity,
-				TaskID:    taskid,
-				InspName:  inspect.Identity,
-				DBName:    tdb.Identity,
-				Result:    result,
-			})
+			logger2.
+				Get(t.Config.LogID).
+				Log(logger.Content{
+					Timestamp: time.Now(),
+					TaskName:  t.Config.Identity,
+					TaskID:    taskid,
+					InspName:  inspect.Identity,
+					DBName:    tdb.Identity,
+					Result:    result,
+				})
 
 			//报警
-			err = alerter2.GetAlert(inspect.AlertID).Send(alerter.Content{
-				TimeStamp: time.Now(),
-				TaskName:  t.Config.Identity,
-				TaskID:    taskid,
-				DBName:    tdb.Identity,
-				InspName:  inspect.Identity,
-				Result:    result,
-			})
+			err = alerter2.
+				GetAlert(t.Config.AlertID).
+				Send(alerter.Content{
+					TimeStamp: time.Now(),
+					TaskName:  t.Config.Identity,
+					TaskID:    taskid,
+					DBName:    tdb.Identity,
+					InspName:  inspect.Identity,
+					Result:    result,
+				})
 			//err = inspect.AlertFunc()
 			if err != nil {
 				return err

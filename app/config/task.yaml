@@ -1,6 +1,7 @@
 Task:
   - Identity: "task1"
-    TargetLog: "1"
+    LogID: "1"
+    AlertID: "3"
     TargetDB:
       - "example1"
     Todo:
@@ -10,4 +11,3 @@ Task:
       Duration: 10m
 #      AtTime:
 #      - "13:00:01"
-    LogID: "2"

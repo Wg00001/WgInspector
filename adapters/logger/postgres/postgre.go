@@ -159,14 +159,14 @@ func (l LogPostgre) ReadLog(filter config.LogFilter) ([]logger.Content, error) {
 	}
 
 	// 处理 DBNames 过滤
-	if len(filter.DBNames) > 0 {
-		placeholders := make([]string, len(filter.DBNames))
-		for i := range filter.DBNames {
+	if len(filter.DBIDs) > 0 {
+		placeholders := make([]string, len(filter.DBIDs))
+		for i := range filter.DBIDs {
 			placeholders[i] = fmt.Sprintf("$%d", argIdx+i)
 		}
 		whereClauses = append(whereClauses, fmt.Sprintf("db_name IN (%s)", strings.Join(placeholders, ",")))
-		args = append(args, interfaceSlice(filter.DBNames)...)
-		argIdx += len(filter.DBNames)
+		args = append(args, interfaceSlice(filter.DBIDs)...)
+		argIdx += len(filter.DBIDs)
 	}
 
 	// 处理 TaskIDs 过滤

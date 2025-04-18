@@ -42,7 +42,7 @@ func TestAgentRAU(t *testing.T) {
 			}(),
 			EndTime:   time.Now(),
 			TaskNames: nil,
-			DBNames:   nil,
+			DBIDs:     nil,
 			TaskIDs:   nil,
 			InspNames: nil,
 		},

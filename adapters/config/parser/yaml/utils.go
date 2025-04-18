@@ -25,13 +25,13 @@ func ParseMap(n insp2.NodeBuilder, arg map[string]interface{}) (m insp2.NodeBuil
 			err = fmt.Errorf("inspect node build fail, please check inspect config \nerr: %v\n", r)
 		}
 	}()
-	alertId, ok := arg[keyAlertId]
-	if !ok {
-		return n, nil
-	} else {
-		n.AlertID = config.NewIdentity(alertId)
-		delete(arg, keyAlertId)
-	}
+	//alertId, ok := arg[keyAlertId]
+	//if !ok {
+	//	return n, nil
+	//} else {
+	//	n.AlertID = config.NewIdentity(alertId)
+	//	delete(arg, keyAlertId)
+	//}
 	alertWhen, ok := arg[keyAlertWhen]
 	if !ok {
 		return n, nil

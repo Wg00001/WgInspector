@@ -15,11 +15,10 @@ import (
 // InspNode 分为Insp节点和索引节点，Insp节点也是叶子节点
 type InspNode struct {
 	Identity
-	SQL      string
-	Children Map
-
-	AlertID   Identity
+	SQL       string
+	Children  Map
 	AlertWhen string
+	//AlertID   Identity
 	//AlertFunc func(alerter.Content) error //包括检查是否符合报警条件，并且发送报警
 }
 

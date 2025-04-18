@@ -84,8 +84,9 @@ type TaskConfig struct {
 	Cron         *Cron
 	AllInspector bool
 
-	TargetLogID Identity
-	TargetDB    []Identity
+	LogID    Identity
+	AlertID  Identity
+	TargetDB []Identity
 
 	Todo    []Identity
 	NotTodo []Identity
@@ -129,8 +130,8 @@ type LogFilter struct {
 	StartTime time.Time
 	EndTime   time.Time
 	TaskNames []Identity // Id 匹配列表
-	DBNames   []Identity // DBName 匹配列表
-	TaskIDs   []string   // TaskID 匹配列表
+	DBIDs     []Identity // DBName 匹配列表
+	TaskIDs   []Identity // TaskID 匹配列表
 	InspNames []Identity // Insp匹配列表
 }
 

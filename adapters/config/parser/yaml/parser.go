@@ -219,8 +219,8 @@ func (c *ConfigYamlParser) ParseAgent(file []byte) (_ config.AgentConfigGroup, e
 					StartTime: parseTime(logFilterMap.GetString("starttime")),
 					EndTime:   parseTime(logFilterMap.GetString("endtime")),
 					TaskNames: parseNames(logFilterMap["tasknames"]),
-					DBNames:   parseNames(logFilterMap["dbnames"]),
-					TaskIDs:   parseStringSlice(logFilterMap["taskids"]),
+					DBIDs:     parseNames(logFilterMap["dbnames"]),
+					TaskIDs:   parseNames(logFilterMap["taskids"]),
 					InspNames: parseNames(logFilterMap["inspnames"]),
 				}
 			}

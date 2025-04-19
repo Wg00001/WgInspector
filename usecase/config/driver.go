@@ -2,7 +2,7 @@ package config
 
 import (
 	"WgInspector/entities/config"
-	"fmt"
+	"gorm.io/gorm"
 	"log"
 	"sync"
 )
@@ -13,12 +13,8 @@ import (
  * @date 2025/3/4
  */
 
-func UseDriver(initConfig config.InitConfig) error {
-	r, err := GetReader(initConfig.ConfigReader)
-	if err != nil {
-		return err
-	}
-	r, err = r.NewReader(initConfig.Option)
+func InitReader(db *gorm.DB) error {
+	r, err := reader.NewReader(db)
 	if err != nil {
 		return err
 	}
@@ -28,9 +24,14 @@ func UseDriver(initConfig config.InitConfig) error {
 	return nil
 }
 
+func UseDriver(r config.Reader) {
+	readerDriverMu.Lock()
+	defer readerDriverMu.Unlock()
+	reader = r
+}
+
 var (
 	reader         config.Reader
-	readerDrivers  = make(map[string]config.Reader)
 	readerDriverMu sync.RWMutex
 )
 
@@ -39,56 +40,6 @@ func LoadConfig() error {
 	if err != nil {
 		return err
 	}
-	//reader.SaveConfig()
 	log.Println("config initiated...")
 	return nil
-}
-
-func RegisterReader(name string, driver config.Reader) {
-	readerDriverMu.Lock()
-	defer readerDriverMu.Unlock()
-	if readerDrivers == nil {
-		panic("config: readerDrivers map is nil")
-	}
-	if _, dup := readerDrivers[name]; dup {
-		panic("config: Register called twice for driver " + name)
-	}
-	readerDrivers[name] = driver
-}
-
-func GetReader(name string) (config.Reader, error) {
-	readerDriverMu.RLock()
-	defer readerDriverMu.RUnlock()
-	res, ok := readerDrivers[name]
-	if !ok {
-		return nil, fmt.Errorf("config: get driver fail: %s\n", name)
-	}
-	return res, nil
-}
-
-var (
-	parserDrivers  = make(map[string]config.Parser)
-	parserDriverMu sync.RWMutex
-)
-
-func RegisterParser(name string, driver config.Parser) {
-	parserDriverMu.Lock()
-	defer parserDriverMu.Unlock()
-	if parserDrivers == nil {
-		panic("config: readerDrivers map is nil")
-	}
-	if _, dup := parserDrivers[name]; dup {
-		panic("config: Register called twice for driver " + name)
-	}
-	parserDrivers[name] = driver
-}
-
-func GetParser(name string) (config.Parser, error) {
-	parserDriverMu.RLock()
-	defer parserDriverMu.RUnlock()
-	res, ok := parserDrivers[name]
-	if !ok {
-		return nil, fmt.Errorf("config: get parser fail: %s\n", name)
-	}
-	return res, nil
 }

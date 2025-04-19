@@ -63,11 +63,11 @@ func GetResponseMeta[T config2.Id](data T) any {
 	case config2.TaskConfig:
 		return sliceCopy(config.Meta.Tasks)
 	case config2.AgentConfig:
-		return config.Meta.Agent
+		return config.Meta.Agents
 	case config2.AgentTaskConfig:
 		return sliceCopy(config.Meta.AgentTasks)
 	case config2.KnowledgeBaseConfig:
-		return sliceCopy(config.Meta.KnowledgeBases)
+		return sliceCopy(config.Meta.KBases)
 	case config2.InspTree:
 		return config.Meta.Insp
 	default:
@@ -75,7 +75,7 @@ func GetResponseMeta[T config2.Id](data T) any {
 	}
 }
 
-func GetConfigMeta() config2.ConfigMeta {
+func GetConfigMeta() config2.MetaConfig {
 	config.RLock()
 	defer config.RUnlock()
 	return config.Meta

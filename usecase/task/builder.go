@@ -12,34 +12,34 @@ import (
  * @date 2025/2/10
  */
 
-// NewTask
 // alert如果没有设置，那么应该继承父节点的alertID
-func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
+func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("init task fail: %s", err.Error())
 		}
 	}()
-	if taskCfg == nil {
-		return nil, fmt.Errorf("config is nil")
-	}
-	res = &Task{
-		//Id: taskCfg.Id.Str() + time.Now().Format(time.RFC3339),
-		Config:   taskCfg,
-		TargetDB: make([]*config.DBConfig, 0, len(taskCfg.TargetDB)),
-		Inspects: []*config.InspNode{},
+	//if taskCfg.UUID == nil {
+	//	return nil, fmt.Errorf("config is nil")
+	//}
+	res = &taskPlan{
+		targetDBs: make([]*config.DBConfig, 0, len(taskCfg.TargetDB)),
+		inspNodes: []*config.InspNode{},
 	}
 	for _, val := range taskCfg.TargetDB {
-		dbcfg, err := config2.Get[config.DBConfig](config.DBConfig{Identity: val})
+		dbcfg, err := config2.Get[config.DBConfig](config2.Key{
+			ConfigType: config.TypeDB,
+			Identity:   val,
+		})
 		if err != nil {
 			return nil, err
 		}
-		res.TargetDB = append(res.TargetDB, dbcfg)
+		res.targetDBs = append(res.targetDBs, &dbcfg)
 	}
 
 	//是否全选 (全部insp)
 	if taskCfg.AllInspector {
-		res.Inspects = config2.GetAllInsp()
+		res.inspNodes = config2.GetAllInsp()
 	}
 	//添加todo列表的insp
 	for _, val := range taskCfg.Todo {
@@ -47,19 +47,19 @@ func NewTask(taskCfg *config.TaskConfig) (res *Task, err error) {
 		if temp == nil {
 			continue
 		}
-		res.Inspects = append(res.Inspects, temp)
+		res.inspNodes = append(res.inspNodes, temp)
 	}
 	//去掉not to do的insp (使用hash连接)
 	notToDo := make(map[config.Identity]bool, len(taskCfg.NotTodo))
 	for _, val := range taskCfg.NotTodo {
 		notToDo[val] = true
 	}
-	newArr := make([]*config.InspNode, 0, len(res.Inspects))
-	for _, val := range res.Inspects {
+	newArr := make([]*config.InspNode, 0, len(res.inspNodes))
+	for _, val := range res.inspNodes {
 		if !notToDo[val.Identity] {
 			newArr = append(newArr, val)
 		}
 	}
-	res.Inspects = newArr
+	res.inspNodes = newArr
 	return res, nil
 }

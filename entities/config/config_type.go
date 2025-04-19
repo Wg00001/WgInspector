@@ -15,7 +15,7 @@ const (
 	TypeDB        = "DB"
 	TypeAlert     = "Alert"
 	TypeTask      = "Task"
-	TypeAgent     = "Agent"
+	TypeAgent     = "Agents"
 	TypeAgentTask = "AgentTask"
 	TypeKBase     = "KBase"
 	TypeInspector = "Inspector"

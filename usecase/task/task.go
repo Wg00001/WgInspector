@@ -23,18 +23,25 @@ import (
 
 type Task struct {
 	//Id string //批次编号, task每次启动会生成一个
-	Config   *config.TaskConfig
-	TargetDB []*config.DBConfig
-	Inspects []*config.InspNode
+	Config config.TaskConfig
+}
+
+type taskPlan struct {
+	targetDBs []*config.DBConfig
+	inspNodes []*config.InspNode
 }
 
 var _ task.Task = (*Task)(nil)
 
 func (t *Task) Do(ctx context.Context) error {
-	taskid := time.Now().Format("20060102_150405")
-	fmt.Printf("task: start - %s\n", taskid)
-	for _, inspect := range t.Inspects {
-		for _, tdb := range t.TargetDB {
+	taskId := time.Now().Format("20060102_150405")
+	tp, err := newTaskPlan(t.Config)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("task: start - %s\n", taskId)
+	for _, inspect := range tp.inspNodes {
+		for _, tdb := range tp.targetDBs {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -60,7 +67,7 @@ func (t *Task) Do(ctx context.Context) error {
 				Log(logger.Content{
 					Timestamp: time.Now(),
 					TaskName:  t.Config.Identity,
-					TaskID:    taskid,
+					TaskID:    taskId,
 					InspName:  inspect.Identity,
 					DBName:    tdb.Identity,
 					Result:    result,
@@ -72,7 +79,7 @@ func (t *Task) Do(ctx context.Context) error {
 				Send(alerter.Content{
 					TimeStamp: time.Now(),
 					TaskName:  t.Config.Identity,
-					TaskID:    taskid,
+					TaskID:    taskId,
 					DBName:    tdb.Identity,
 					InspName:  inspect.Identity,
 					Result:    result,
@@ -93,5 +100,5 @@ func (t *Task) GetCron() *config.Cron {
 }
 
 func (t *Task) Identity() config.Identity {
-	return "insp_task:" + t.Config.Identity
+	return t.Config.Identity
 }

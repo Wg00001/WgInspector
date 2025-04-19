@@ -13,7 +13,6 @@ import (
 	"WgInspector/usecase/task/cron"
 	"WgInspector/utils"
 	"fmt"
-	"github.com/wg00001/wgo-sdk/wg"
 	"log"
 )
 import (
@@ -79,7 +78,7 @@ func Init(initConfig config.InitConfig) {
 	printErr(InitAiConfig())
 	printErr(InitAiTask())
 	printErr(InitKBase())
-	//printErr(client.Use(config.InitConfig{
+	//printErr(client.UseDriver(config.InitConfig{
 	//	ClientDriver: "websocket",
 	//	ClientURL:    "ws://127.0.0.1:9999",
 	//}))
@@ -123,7 +122,7 @@ func InitOld(optionFuncArr ...utils.OptionFunc) {
 	printErr(InitAiConfig())
 	printErr(InitAiTask())
 	printErr(InitKBase())
-	//printErr(client.Use(config.InitConfig{
+	//printErr(client.UseDriver(config.InitConfig{
 	//	ClientDriver: "websocket",
 	//	ClientURL:    "ws://127.0.0.1:9999",
 	//}))
@@ -133,8 +132,7 @@ func InitOld(optionFuncArr ...utils.OptionFunc) {
 func InitDB() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	dbConfigs := wg.MapToValueSlice(config2.Index.DB)
-	for _, v := range dbConfigs {
+	for _, v := range config2.Meta.DBs {
 		err := db.Use(v)
 		if err != nil {
 			return err
@@ -146,9 +144,8 @@ func InitDB() error {
 func InitLogger() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	logConfigs := wg.MapToValueSlice(config2.Index.Log)
-	for _, v := range logConfigs {
-		err := logger.Use(*v)
+	for _, v := range config2.Meta.Logs {
+		err := logger.Use(v)
 		if err != nil {
 			return err
 		}
@@ -159,9 +156,8 @@ func InitLogger() error {
 func InitTask() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	taskConfigs := wg.MapToValueSlice(config2.Index.Task)
-	for _, v := range taskConfigs {
-		t, err := task.NewTask(v)
+	for _, v := range config2.Meta.Tasks {
+		t, err := task.newTaskPlan(v)
 		if err != nil {
 			return err
 		}
@@ -177,9 +173,8 @@ func InitTask() error {
 func InitAlert() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	alertConfigs := wg.MapToValueSlice(config2.Index.Alert)
-	for _, v := range alertConfigs {
-		err := alerter.Use(*v)
+	for _, v := range config2.Meta.Alerts {
+		err := alerter.Use(v)
 		if err != nil {
 			return err
 		}
@@ -190,14 +185,13 @@ func InitAlert() error {
 func InitAiConfig() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	return analyzer.Use(*config2.Index.Agent)
+	return analyzer.Use(config2.Meta.Agents)
 }
 
 func InitAiTask() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	aiTasks := wg.MapToValueSlice(config2.Index.AgentTask)
-	for _, v := range aiTasks {
+	for _, v := range config2.Meta.AgentTasks {
 		cron.AddTask(agent.NewTask(v))
 	}
 	return nil
@@ -206,9 +200,8 @@ func InitAiTask() error {
 func InitKBase() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	kbaseConfig := wg.MapToValueSlice(config2.Index.KBase)
-	for _, v := range kbaseConfig {
-		err := kbase.Use(*v)
+	for _, v := range config2.Meta.KBases {
+		err := kbase.Use(v)
 		if err != nil {
 			return err
 		}

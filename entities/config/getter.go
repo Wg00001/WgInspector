@@ -1,7 +1,5 @@
 package config
 
-import "fmt"
-
 /**
  * @description:
  * @author Wg
@@ -9,17 +7,13 @@ import "fmt"
  */
 
 type Id interface {
-	GetIdentity() string
+	GetIdentity() Identity
 }
 
-func (n Identity) GetIdentity() string {
-	return n.Str()
+func (n Identity) GetIdentity() Identity {
+	return n
 }
 
 func (n Identity) Str() string {
-	return string(n)
-}
-
-func NewIdentity[T any](arg T) Identity {
-	return Identity(fmt.Sprintf("%v", arg))
+	return n.Name + n.UUID.String()
 }

@@ -15,7 +15,7 @@ import (
 
 type SqlDB struct {
 	*sql.DB
-	Config *config.DBConfig
+	Config config.DBConfig
 	Err    error
 }
 

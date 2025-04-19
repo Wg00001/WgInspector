@@ -25,10 +25,10 @@ import (
  */
 
 type AgentTask struct {
-	*config.AgentTaskConfig
+	config.AgentTaskConfig
 }
 
-func NewTask(taskConfig *config.AgentTaskConfig) *AgentTask {
+func NewTask(taskConfig config.AgentTaskConfig) *AgentTask {
 	return &AgentTask{AgentTaskConfig: taskConfig}
 }
 
@@ -48,13 +48,13 @@ func (t *AgentTask) Do(context.Context) error {
 		return err
 	}
 	if msg == nil {
-		return fmt.Errorf("Agent task err\n- AgentTask name: %v\n- err: log read empty\n---\n", t.Identity)
+		return fmt.Errorf("Agents task err\n- AgentTask name: %v\n- err: log read empty\n---\n", t.Identity)
 	}
 	//3. Ai生成关键词 + 知识库检索 (并且组织格式)
 	kbaseContent, err := t.KBaseSearch(msg)
 	if err != nil || kbaseContent == nil {
 		// 根据业务需求，不需要阻断流程
-		log.Printf("Agent task warring: kbase search fail but continue to execute, Err :%v\n", err)
+		log.Printf("Agents task warring: kbase search fail but continue to execute, Err :%v\n", err)
 		f := "知识库无相关内容\n"
 		kbaseContent = &f
 	}
@@ -95,7 +95,7 @@ func (t *AgentTask) GetCron() *config.Cron {
 }
 
 func (t *AgentTask) Identity() config.Identity {
-	return config.Identity("ai_task:" + t.Str())
+	return t.AgentTaskConfig.Identity
 }
 
 func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {

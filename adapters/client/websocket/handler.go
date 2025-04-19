@@ -213,11 +213,7 @@ func updateHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
-	err = config2.Set(arg)
-	if err != nil {
-		return err
-	}
-	err = config2.SaveConfig(arg)
+	err = config2.Save(arg)
 	if err != nil {
 		return err
 	}
@@ -232,10 +228,6 @@ func deleteHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
-	err = config2.SaveConfig(arg)
-	if err != nil {
-		return err
-	}
 	return client2.GetResponseMeta(arg)
 }
 
@@ -243,11 +235,7 @@ func createHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
-	err = config2.AppendConfigs(arg)
-	if err != nil {
-		return err
-	}
-	err = config2.SaveConfig(arg)
+	err = config2.Save(arg)
 	if err != nil {
 		return err
 	}

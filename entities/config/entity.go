@@ -2,6 +2,7 @@ package config
 
 import (
 	"WgInspector/utils"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -12,52 +13,27 @@ import (
  */
 
 type InitConfig struct {
-	ConfigReader string
-	ConfigParser string
-	ClientDriver string
-	ClientURL    string
-	Option       utils.Option
+	BaseDSN   string
+	ClientURL string
+	Option    utils.Option
 }
 
-type ConfigMeta struct {
-	CommonConfigGroup
-	TaskConfigGroup
-	AgentConfigGroup
-	Insp *InspTree
+type MetaConfig struct {
+	DBs        []DBConfig
+	Logs       []LogConfig
+	Alerts     []AlertConfig
+	Tasks      []TaskConfig
+	Agents     []AgentConfig
+	AgentTasks []AgentTaskConfig
+	KBases     []KnowledgeBaseConfig
+	InspNodes  []InspNode
+	Insp       *InspTree
 }
 
-type CommonConfigGroup struct {
-	DBs    []DBConfig
-	Logs   []LogConfig
-	Alerts []AlertConfig
+type Identity struct {
+	UUID uuid.UUID
+	Name string
 }
-
-// TaskConfigGroup 可以被Agent修改的
-type TaskConfigGroup struct {
-	Tasks []TaskConfig
-	//Insp  insp.InspTree
-}
-
-type AgentConfigGroup struct {
-	Agent          AgentConfig
-	AgentTasks     []AgentTaskConfig
-	KnowledgeBases []KnowledgeBaseConfig
-}
-
-type ConfigIndex struct {
-	Default *InitConfig
-	Task    map[Identity]*TaskConfig
-	DB      map[Identity]*DBConfig
-	Log     map[Identity]*LogConfig
-	Alert   map[Identity]*AlertConfig
-
-	Agent     *AgentConfig
-	AgentTask map[Identity]*AgentTaskConfig
-	KBase     map[Identity]*KnowledgeBaseConfig
-	//Insp      *insp.InspTree
-}
-
-type Identity string
 
 type DBConfig struct {
 	Identity
@@ -100,7 +76,7 @@ type Cron struct {
 	Monthly  []int
 }
 
-// ---Agent Agent 相关配置
+// ---Agents Agents 相关配置
 
 // AgentConfig 用户只能指定一个全局Ai，所有的分析均由此Ai完成
 type AgentConfig struct {

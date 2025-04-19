@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"sort"
 	"strings"
 )
@@ -28,8 +29,11 @@ type InspTree struct {
 	AllInsp []*InspNode //所有的Insp节点
 }
 
-func (InspTree) GetIdentity() string {
-	return "InspTree"
+func (InspTree) GetIdentity() Identity {
+	return Identity{
+		UUID: uuid.UUID{},
+		Name: "insp_tree",
+	}
 }
 
 type Map map[string]*InspNode

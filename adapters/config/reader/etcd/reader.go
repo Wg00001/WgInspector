@@ -130,9 +130,13 @@ func readAndParse[T config.ConfigType](c *ConfigReaderEtcd) []T {
 	return nil
 }
 
-func (c *ConfigReaderEtcd) SaveConfig(configTypeName string) error {
+func (c *ConfigReaderEtcd) SaveConfig(data config.Id) error {
 	config2.RLock()
 	defer config2.RUnlock()
+	configTypeName, err := config.GetConfigTypeName(data)
+	if err != nil {
+		return err
+	}
 	//1. 从meta中取出type对应配置
 	switch configTypeName {
 	case config.TypeDB:

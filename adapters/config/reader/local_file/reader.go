@@ -104,7 +104,7 @@ func (c *ConfigReaderLocalFile) ReadConfig() (err error) {
 	return config2.SetConfigMeta(c.meta)
 }
 
-func (c *ConfigReaderLocalFile) SaveConfig(string) error {
+func (c *ConfigReaderLocalFile) SaveConfig(config.Id) error {
 	return nil
 }
 

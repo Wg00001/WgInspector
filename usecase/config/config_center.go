@@ -287,6 +287,6 @@ func getPtrFromIndex[T config.Id](index map[config.Identity]*T, id config.Identi
 	}
 }
 
-func SaveConfig(configType string) error {
-	return reader.SaveConfig(configType)
+func SaveConfig(data config.Id) error {
+	return reader.SaveConfig(data)
 }

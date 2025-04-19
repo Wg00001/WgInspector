@@ -106,11 +106,11 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 				logErr(clientActionGet, handleFunc(getHandler, response, 0))
 			}
 		case clientActionUpdate:
-			logErr(clientActionUpdate, handleFunc(updateHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionUpdate, handleFunc(updateHandler, responseWithCallback, 1))
 		case clientActionDelete:
-			logErr(clientActionDelete, handleFunc(deleteHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionDelete, handleFunc(deleteHandler, responseWithCallback, 1))
 		case clientActionCreate:
-			logErr(clientActionCreate, handleFunc(createHandler, responseWithCallback, 1), config2.SaveConfig(msg.ConfigType))
+			logErr(clientActionCreate, handleFunc(createHandler, responseWithCallback, 1))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
@@ -217,6 +217,10 @@ func updateHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
+	err = config2.SaveConfig(arg)
+	if err != nil {
+		return err
+	}
 	return client2.GetResponseMeta(arg)
 }
 
@@ -228,6 +232,10 @@ func deleteHandler(arg config.Id, err error) any {
 	if err != nil {
 		return err
 	}
+	err = config2.SaveConfig(arg)
+	if err != nil {
+		return err
+	}
 	return client2.GetResponseMeta(arg)
 }
 
@@ -236,6 +244,10 @@ func createHandler(arg config.Id, err error) any {
 		return err
 	}
 	err = config2.AppendConfigs(arg)
+	if err != nil {
+		return err
+	}
+	err = config2.SaveConfig(arg)
 	if err != nil {
 		return err
 	}

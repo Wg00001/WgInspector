@@ -132,7 +132,7 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 	}
 }
 
-type HandleFunc func(arg config.Id, err error) any
+type HandleFunc func(configType string, arg config.Id) any
 type ResponseFunc func(conn *websocket.Conn, configType MsgMeta, obj any) error
 
 func handler(
@@ -141,23 +141,28 @@ func handler(
 	handleFunc HandleFunc,
 	responseFunc ResponseFunc,
 ) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("websocket client - %v", r)
+		}
+	}()
 	switch req.ConfigType {
 	case config.TypeDB:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.DBConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeDB, parseJson[config.DBConfig](req.ConfigData)))
 	case config.TypeLog:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.LogConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeLog, parseJson[config.LogConfig](req.ConfigData)))
 	case config.TypeAlert:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AlertConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeAlert, parseJson[config.AlertConfig](req.ConfigData)))
 	case config.TypeTask:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.TaskConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeTask, parseJson[config.TaskConfig](req.ConfigData)))
 	case config.TypeAgent:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AgentConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeAgent, parseJson[config.AgentConfig](req.ConfigData)))
 	case config.TypeAgentTask:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.AgentTaskConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeAgentTask, parseJson[config.AgentTaskConfig](req.ConfigData)))
 	case config.TypeKBase:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.KnowledgeBaseConfig](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeKBase, parseJson[config.KnowledgeBaseConfig](req.ConfigData)))
 	case config.TypeInspector:
-		return responseFunc(conn, req.MsgMeta, handleFunc(parseJson[config.InspNode](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeInspector, parseJson[config.InspNode](req.ConfigData)))
 	default:
 		return fmt.Errorf("client - websocket: handle fail: type of configData not suppose: %s", req.ConfigType)
 	}
@@ -193,53 +198,48 @@ func responseWithCallback(conn *websocket.Conn, msgMeta MsgMeta, obj any) error 
 	return client2.CallBack(msgMeta.ConfigType, obj, conn)
 }
 
-func parseJson[T config.Id](configData json.RawMessage) (T, error) {
+func parseJson[T config.Id](configData json.RawMessage) T {
 	var res T
 	err := json.Unmarshal(configData, &res)
-	if err != nil {
-		return res, fmt.Errorf("client - json parse fail: type %s, data: %v", reflect.TypeOf(res), string(configData))
-	}
-	return res, nil
+	panic(fmt.Errorf("json parse fail: type %s, data: %v, err:%v", reflect.TypeOf(res), string(configData), err))
+	return res
 }
 
-func getHandler(arg config.Id, err error) any {
-	if err != nil {
-		return err
-	}
-	return client2.GetResponseMeta(arg)
+func getHandler(configType string, arg config.Id) any {
+	return client2.GetMetaItem(arg)
 }
 
-func updateHandler(arg config.Id, err error) any {
+func updateHandler(configType string, arg config.Id) any {
+	err := config2.Save(config2.Key{
+		ConfigType: configType,
+		Identity:   arg.GetIdentity(),
+	}, arg)
 	if err != nil {
 		return err
 	}
-	err = config2.Save(arg)
-	if err != nil {
-		return err
-	}
-	return client2.GetResponseMeta(arg)
+	return client2.GetMetaItem(arg)
 }
 
-func deleteHandler(arg config.Id, err error) any {
+func deleteHandler(configType string, arg config.Id) any {
+	err := config2.Del(config2.Key{
+		ConfigType: configType,
+		Identity:   arg.GetIdentity(),
+	}, arg)
 	if err != nil {
 		return err
 	}
-	err = config2.Del(arg)
-	if err != nil {
-		return err
-	}
-	return client2.GetResponseMeta(arg)
+	return client2.GetMetaItem(arg)
 }
 
-func createHandler(arg config.Id, err error) any {
+func createHandler(configType string, arg config.Id) any {
+	err := config2.Save(config2.Key{
+		ConfigType: configType,
+		Identity:   arg.GetIdentity(),
+	}, arg)
 	if err != nil {
 		return err
 	}
-	err = config2.Save(arg)
-	if err != nil {
-		return err
-	}
-	return client2.GetResponseMeta(arg)
+	return client2.GetMetaItem(arg)
 }
 
 func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg RequestMsg) error {
@@ -350,12 +350,12 @@ func handleGetTaskStatus(parentCtx context.Context, conn *websocket.Conn, msg Re
 }
 
 func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
-	var taskId string
-	err := json.Unmarshal(msg.ConfigData, &taskId)
+	var id config.Identity
+	err := json.Unmarshal(msg.ConfigData, &id)
 	if err != nil {
 		return err
 	}
-	err = cron.DoNow(taskId)
+	err = cron.DoNow(id)
 	if err != nil {
 		response(conn, msg.MsgMeta, err)
 		return err

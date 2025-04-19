@@ -43,7 +43,7 @@ func buildAiAlertContent(t *AgentTask, msg string) *alerter2.Content {
 		TimeStamp: time.Now(),
 		TaskName:  t.Identity(),
 		TaskID:    time.Now().Format("20060504_150201"),
-		InspName:  config.Identity(logFilterString(t.LogFilter)), //todo: log filter
+		InspName:  config.Identity{Name: logFilterString(t.LogFilter)},
 		Result:    []map[string]interface{}{{"message": msg}},
 	}
 }

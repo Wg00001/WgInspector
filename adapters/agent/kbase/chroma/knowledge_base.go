@@ -25,7 +25,7 @@ func init() {
 }
 
 type KBaseChroma struct {
-	Config           *config.KnowledgeBaseConfig
+	Config           config.KnowledgeBaseConfig
 	Path             string
 	Collection       string //chroma的collection类似于库
 	Tenant           string //chroma需要指定租户
@@ -39,14 +39,14 @@ type KBaseChroma struct {
 
 var _ agent.KnowledgeBase = (*KBaseChroma)(nil)
 
-func (k KBaseChroma) Init(cfg *config.KnowledgeBaseConfig) (_ agent.KnowledgeBase, err error) {
+func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("kbase: chroma init fail - panic: %s\n", r)
 		}
 	}()
 	k.Config = cfg
-	value := utils.UseMap(cfg.Value)
+	value := utils.UseMap(cfg.Option)
 	k.Path = value.GetString("path")
 	k.Collection = value.GetString("collection")
 	k.Tenant = value.GetString("tenant")
@@ -69,7 +69,10 @@ func (k KBaseChroma) Init(cfg *config.KnowledgeBaseConfig) (_ agent.KnowledgeBas
 	case "openai":
 	default:
 		//agentConfig := config2.GetAgentConfig()
-		agentConfig, _ := config2.Get[config.AgentConfig](config.AgentConfig{})
+		agentConfig, _ := config2.Get[config.AgentConfig](config2.Key{
+			ConfigType: config.TypeAgent,
+			Identity:   k.Config.AgentID,
+		})
 		k.Efunc, err = openai.NewOpenAIEmbeddingFunction(
 			agentConfig.ApiKey,
 			func(c *openai.OpenAIClient) error {

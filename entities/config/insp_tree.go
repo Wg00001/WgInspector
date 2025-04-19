@@ -115,7 +115,7 @@ func (n *InspNode) AddChild(node *InspNode) error {
 	if n.Children == nil {
 		n.Children = make(Map)
 	}
-	n.Children[node.Identity.Str()] = node
+	n.Children[node.Identity.ToString()] = node
 	return nil
 }
 
@@ -129,7 +129,7 @@ func (t *InspTree) AddChild(path string, node *InspNode) error {
 	}
 	//根目录层
 	if path == "" {
-		t.Roots[node.Identity.Str()] = node
+		t.Roots[node.Identity.ToString()] = node
 		return nil
 	}
 
@@ -138,7 +138,7 @@ func (t *InspTree) AddChild(path string, node *InspNode) error {
 	if n == nil {
 		return fmt.Errorf("Insp tree err: path is not exist: %s\n", path)
 	}
-	if _, ok := n.Children[node.Identity.Str()]; ok {
+	if _, ok := n.Children[node.Identity.ToString()]; ok {
 		return fmt.Errorf("node is already exist, path: %s, name: %s \n", path, node.Identity)
 	}
 	return n.AddChild(node)

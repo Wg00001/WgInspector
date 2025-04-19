@@ -1,16 +1,12 @@
 package main
 
 import (
-	"WgInspector/app/cli"
 	"WgInspector/app/start"
 	"WgInspector/entities/config"
 	"WgInspector/usecase/client"
 	"WgInspector/usecase/db"
-	"WgInspector/utils"
 	"context"
 	"flag"
-	"fmt"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"os/signal"
@@ -29,27 +25,11 @@ var (
 	serviceMutex sync.Mutex
 )
 
-func init() {
-	flag.StringVar(&global.ConfigReader, "config-reader", "", "Implementation of config reader")
-	flag.StringVar(&global.ConfigParser, "config-parser", "", "Implementation of config parser")
-	flag.StringVar(&global.ClientDriver, "client-driver", "", "Type of client driver")
-	flag.StringVar(&global.ClientURL, "client-url", "", "Client connection URL")
-}
-
 func main() {
 	flag.Parse()
 	defer cleanup()
 
-	// Initial configuration load
-	if err := loadConfiguration(); err != nil {
-		log.Fatalf("[ERROR] Initial configuration load failed: %v", err)
-	}
-
 	startServices()
-
-	// Start interactive shell
-	cliInstance := cli.NewCLI(restartChan, mainCancel, &global)
-	go cliInstance.StartCommandListener()
 
 	// Signal handling
 	go signalHandler()
@@ -67,22 +47,6 @@ func main() {
 	}
 }
 
-func loadConfiguration() error {
-	// Load existing config
-	if err := readConfigFile(); err != nil {
-		return fmt.Errorf("config file read error: %w", err)
-	}
-
-	// Merge command line inputs
-	if hasCommandLineInput() {
-		if err := saveConfigFile(); err != nil {
-			return fmt.Errorf("config save error: %w", err)
-		}
-		log.Printf("[INFO] Configuration saved to %s", configPath)
-	}
-	return nil
-}
-
 func startServices() {
 	serviceMutex.Lock()
 	defer serviceMutex.Unlock()
@@ -92,7 +56,7 @@ func startServices() {
 	mainCancel = cancel
 
 	start.Init(global)
-	if err := client.Use(global); err != nil {
+	if err := client.Init(global); err != nil {
 		log.Printf("[ERROR] Client init: %v", err)
 		return
 	}
@@ -145,72 +109,4 @@ func signalHandler() {
 		mainCancel()
 		return
 	}
-}
-
-type InitConfigYaml struct {
-	ConfigReader string       `yaml:"config_reader"`
-	ConfigParser string       `yaml:"config_parser"`
-	ClientDriver string       `yaml:"client_driver"`
-	ClientURL    string       `yaml:"client_url"`
-	Option       utils.Option `yaml:"option"`
-}
-
-func useYaml(initConfig config.InitConfig) InitConfigYaml {
-	return InitConfigYaml{
-		ConfigReader: initConfig.ConfigReader,
-		ConfigParser: initConfig.ConfigParser,
-		ClientDriver: initConfig.ClientDriver,
-		ClientURL:    initConfig.ClientURL,
-		Option:       initConfig.Option,
-	}
-}
-
-func readConfigFile() error {
-	file, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return saveConfigFile()
-		}
-		return err
-	}
-	var unmarshalTarget InitConfigYaml
-	err = yaml.Unmarshal(file, &unmarshalTarget)
-	if err != nil {
-		return err
-	}
-	global = config.InitConfig{
-		ConfigReader: unmarshalTarget.ConfigReader,
-		ConfigParser: unmarshalTarget.ConfigParser,
-		ClientDriver: unmarshalTarget.ClientDriver,
-		ClientURL:    unmarshalTarget.ClientURL,
-		Option:       unmarshalTarget.Option,
-	}
-	return nil
-}
-
-func saveConfigFile() error {
-	data, err := yaml.Marshal(useYaml(global))
-	if err != nil {
-		return fmt.Errorf("serialization error: %w", err)
-	}
-
-	if err := os.MkdirAll("./app", 0755); err != nil {
-		return fmt.Errorf("directory creation error: %w", err)
-	}
-
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		return fmt.Errorf("file write error: %w", err)
-	}
-	return nil
-}
-
-func hasCommandLineInput() bool {
-	hasInput := false
-	flag.Visit(func(f *flag.Flag) {
-		switch f.Name {
-		case "config-reader", "config-parser", "client-driver", "client-url":
-			hasInput = true
-		}
-	})
-	return hasInput
 }

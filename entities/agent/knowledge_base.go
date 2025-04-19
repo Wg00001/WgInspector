@@ -19,7 +19,7 @@ type Document struct {
 }
 
 type KnowledgeBase interface {
-	Init(config *config.KnowledgeBaseConfig) (KnowledgeBase, error)
+	Init(config config.KnowledgeBaseConfig) (KnowledgeBase, error)
 	WriteIn(docs []Document) error //将文档写入知识库
 	Search(queries QueryData) ([]Document, error)
 	Embedding(query string) ([]float32, error)

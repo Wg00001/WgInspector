@@ -3,7 +3,6 @@ package client
 import (
 	"WgInspector/entities/client"
 	"WgInspector/entities/config"
-	"fmt"
 	"sync"
 )
 
@@ -13,12 +12,10 @@ import (
  * @date 2025/3/25
  */
 
-func Use(cfg config.InitConfig) error {
-	driver, err := GetDriver(cfg.ClientDriver)
-	if err != nil {
-		return err
-	}
-	init, err := driver.Init(cfg.ClientURL)
+func Init(cfg config.InitConfig) error {
+	driversMu.Lock()
+	defer driversMu.Unlock()
+	init, err := aclient.Init(cfg.ClientURL)
 	if err != nil {
 		return err
 	}
@@ -26,28 +23,12 @@ func Use(cfg config.InitConfig) error {
 }
 
 var (
-	drivers   = make(map[string]client.Client)
+	aclient   client.Client
 	driversMu sync.Mutex
 )
 
-func RegisterDriver(name string, cli client.Client) {
+func RegisterClient(cli client.Client) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
-	if drivers == nil {
-		panic("client: drivers map is nil")
-	}
-	if _, dup := drivers[name]; dup {
-		panic("client: Register called twice for driver " + name)
-	}
-	drivers[name] = cli
-}
-
-func GetDriver(name string) (client.Client, error) {
-	driversMu.Lock()
-	defer driversMu.Unlock()
-	res, ok := drivers[name]
-	if !ok {
-		return nil, fmt.Errorf("client: get driver fail - %s\n", name)
-	}
-	return res, nil
+	aclient = cli
 }

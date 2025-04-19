@@ -23,7 +23,7 @@ import (
  */
 
 func init() {
-	client2.RegisterDriver("websocket", &ClientWebSocket{})
+	client2.RegisterClient(&ClientWebSocket{})
 }
 
 const (

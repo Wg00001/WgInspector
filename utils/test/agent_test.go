@@ -67,7 +67,7 @@ func TestKBase(t *testing.T) {
 	cfg := config.KnowledgeBaseConfig{
 		Identity: "unit-test-kb",
 		Driver:   "chroma",
-		Value: map[string]interface{}{
+		Option: map[string]interface{}{
 			"path":       "http://localhost:8000",
 			"collection": "ollama_embedding",
 			"embedding":  "ollama",

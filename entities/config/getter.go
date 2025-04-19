@@ -14,6 +14,6 @@ func (n Identity) GetIdentity() Identity {
 	return n
 }
 
-func (n Identity) Str() string {
+func (n Identity) ToString() string {
 	return n.Name + n.UUID.String()
 }

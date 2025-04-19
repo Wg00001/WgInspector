@@ -23,8 +23,8 @@ func Register(sqlDB *db.SqlDB) error {
 	return nil
 }
 
-func Get(arg config.Identity) *db.SqlDB {
-	if val, ok := pool.Load(arg); ok {
+func Get(id config.Identity) *db.SqlDB {
+	if val, ok := pool.Load(id); ok {
 		return val.(*db.SqlDB)
 	}
 	return &db.SqlDB{Err: fmt.Errorf("db config is nil")}

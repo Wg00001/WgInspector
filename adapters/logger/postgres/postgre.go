@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"strings"
 )
@@ -23,23 +24,24 @@ func init() {
 }
 
 type LogPostgre struct {
-	Config       *config.LogConfig
-	LogDBName    config.Identity
-	LogTableName config.Identity
+	Config   config.LogConfig
+	LogDB    uuid.UUID
+	LogTable string
 }
 
 var _ logger.Logger = (*LogPostgre)(nil)
 
-func (l LogPostgre) Init(cfg *config.LogConfig) (logger.Logger, error) {
-	dbName, ok := cfg.Option["dbname"]
-	if !ok {
-		return LogPostgre{}, fmt.Errorf("Log target db is not exist, dbName:%s\n", dbName)
+func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
+	var res LogPostgre
+	err := json.Unmarshal(cfg.Option, &res)
+	if err != nil {
+		return nil, err
 	}
-	tableName, ok := cfg.Option["tablename"]
-	if !ok {
-		tableName = "inspect_log"
+	if res.LogTable == "" {
+		res.LogTable = "inspect_log"
 	}
-	return LogPostgre{Config: cfg, LogDBName: config.Identity(dbName), LogTableName: config.Identity(tableName)}, nil
+	res.Config = cfg
+	return res, nil
 }
 
 func (l LogPostgre) GetID() config.Identity {
@@ -47,18 +49,18 @@ func (l LogPostgre) GetID() config.Identity {
 }
 
 func (l LogPostgre) Log(res logger.Content) {
-	db.Get(l.LogDBName)
+	db.Get(l.LogDB)
 	// 获取数据库连接
-	logDB := db.Get(l.LogDBName)
+	logDB := db.Get(l.LogDB)
 	if logDB.Err != nil {
 		log.Printf("Failed to get database connection: %v", logDB.Err)
 		return
 	}
 
-	if l.LogTableName == "" || l.LogTableName == "inspect_log" {
-		l.LogTableName = "inspect_log"
+	if l.LogTable == "" || l.LogTable == "inspect_log" {
+		l.LogTable = "inspect_log"
 		// 检查表是否存在
-		exists, err := checkTableExists(logDB.DB, l.LogTableName)
+		exists, err := checkTableExists(logDB.DB, l.LogTable)
 		if err != nil {
 			log.Printf("Failed to check table existence: %v", err)
 			return
@@ -66,7 +68,7 @@ func (l LogPostgre) Log(res logger.Content) {
 
 		// 如果表不存在，则创建表
 		if !exists {
-			err = createTable(logDB.DB, l.LogTableName)
+			err = createTable(logDB.DB, l.LogTable)
 			if err != nil {
 				log.Printf("Failed to create table: %v", err)
 				return
@@ -82,7 +84,7 @@ func (l LogPostgre) Log(res logger.Content) {
 	insertQuery := fmt.Sprintf(`
         INSERT INTO %s (timestamp, task_name, task_id, inspect_name, db_name, result)
         VALUES ($1, $2, $3, $4, $5, $6)
-    `, l.LogTableName)
+    `, l.LogTable)
 
 	// 执行插入操作
 	_, err = logDB.DB.Exec(insertQuery, res.Timestamp, res.TaskName, res.TaskID, res.InspName, res.DBName, resultContent)
@@ -92,19 +94,19 @@ func (l LogPostgre) Log(res logger.Content) {
 }
 
 // checkTableExists 检查指定表是否存在
-func checkTableExists(db *sql.DB, tableName config.Identity) (bool, error) {
+func checkTableExists(db *sql.DB, tableName string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE  table_schema = 'public'
         AND    table_name   = $1
     )`
-	err := db.QueryRow(query, tableName.Str()).Scan(&exists)
+	err := db.QueryRow(query, tableName).Scan(&exists)
 	return exists, err
 }
 
 // createTable 创建指定表
-func createTable(db *sql.DB, tableName config.Identity) error {
+func createTable(db *sql.DB, tableName string) error {
 	createQuery := fmt.Sprintf(`
         CREATE TABLE %s (
             id SERIAL PRIMARY KEY,
@@ -115,16 +117,16 @@ func createTable(db *sql.DB, tableName config.Identity) error {
             db_name TEXT,
             result JSONB
         )
-    `, tableName.Str())
+    `, tableName)
 	_, err := db.Exec(createQuery)
 	return err
 }
 
 func (l LogPostgre) ReadLog(filter config.LogFilter) ([]logger.Content, error) {
 	// 获取数据库连接
-	logDB := db.Get(l.LogDBName)
+	logDB := db.Get(l.LogDB)
 	if logDB == nil {
-		return nil, fmt.Errorf("database connection not found: %s", l.LogDBName)
+		return nil, fmt.Errorf("database connection not found: %s", l.LogDB)
 	}
 
 	// 构建动态 WHERE 子句和参数

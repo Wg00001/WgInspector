@@ -2,6 +2,7 @@ package config
 
 import (
 	"WgInspector/utils"
+	"encoding/json"
 	"github.com/google/uuid"
 	"time"
 )
@@ -44,13 +45,13 @@ type DBConfig struct {
 type LogConfig struct {
 	Identity
 	Driver string
-	Option map[string]string
+	Option json.RawMessage
 }
 
 type AlertConfig struct {
 	Identity
 	Driver string
-	Option map[string]string
+	Option json.RawMessage
 }
 
 // ---task(任务)相关配置
@@ -113,6 +114,7 @@ type LogFilter struct {
 
 type KnowledgeBaseConfig struct {
 	Identity
-	Driver string
-	Value  map[string]interface{}
+	Driver  string
+	AgentID Identity
+	Option  map[string]interface{}
 }

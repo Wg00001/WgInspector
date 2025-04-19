@@ -18,7 +18,7 @@ import (
 type Logger interface {
 	Log(Content)
 	GetID() config.Identity
-	Init(cfg *config.LogConfig) (Logger, error)
+	Init(cfg config.LogConfig) (Logger, error)
 	ReadLog(config.LogFilter) ([]Content, error)
 }
 

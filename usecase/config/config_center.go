@@ -35,7 +35,7 @@ func RUnlock() {
 func GetInsp(path config.Identity) *config.InspNode {
 	mu.RLock()
 	defer mu.RUnlock()
-	return Meta.Insp.GetNode(path.Str())
+	return Meta.Insp.GetNode(path.ToString())
 }
 
 func GetAllInsp() []*config.InspNode {

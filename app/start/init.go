@@ -13,6 +13,8 @@ import (
 	"WgInspector/usecase/task/cron"
 	"WgInspector/utils"
 	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 )
 import (
@@ -28,15 +30,14 @@ import (
 	_ "WgInspector/adapters/client"
 	_ "WgInspector/adapters/client/websocket"
 
-	_ "WgInspector/adapters/config/parser/json"
-	_ "WgInspector/adapters/config/parser/yaml"
-	_ "WgInspector/adapters/config/reader/etcd"
-	_ "WgInspector/adapters/config/reader/local_file"
+	_ "WgInspector/adapters/config"
 
 	_ "WgInspector/adapters/logger/default"
 	_ "WgInspector/adapters/logger/postgres"
 
 	_ "WgInspector/adapters/cron"
+
+	_ "gorm.io/driver/postgres"
 )
 
 /**
@@ -47,7 +48,11 @@ import (
 
 func Init(initConfig config.InitConfig) {
 	log.SetFlags(log.LstdFlags)
-	err := config2.UseDriver(initConfig)
+	gormDB, err := gorm.Open(postgres.Open(initConfig.BaseDSN))
+	if err != nil {
+		panic(err)
+	}
+	err = config2.InitReader(gormDB)
 	if err != nil {
 		panic(fmt.Sprintf("config use fail: %s", err))
 	}
@@ -91,11 +96,11 @@ func InitOld(optionFuncArr ...utils.OptionFunc) {
 	opt := make(utils.Option)
 	opt.With(optionFuncArr...)
 	localFileOptFunc(opt)
-	err := config2.UseDriver(config.InitConfig{})
-	if err != nil {
-		panic(fmt.Sprintf("config use fail: %s", err))
-	}
-	err = config2.LoadConfig()
+	//err := config2.UseDriver(config.InitConfig{})
+	//if err != nil {
+	//	panic(fmt.Sprintf("config use fail: %s", err))
+	//}
+	err := config2.LoadConfig()
 	if err != nil {
 		panic(fmt.Sprintf("config load fail: %s", err))
 	}
@@ -157,15 +162,8 @@ func InitTask() error {
 	config2.RLock()
 	defer config2.RUnlock()
 	for _, v := range config2.Meta.Tasks {
-		t, err := task.newTaskPlan(v)
-		if err != nil {
-			return err
-		}
-		err = task.Register(t)
-		if err != nil {
-			return err
-		}
-		cron.AddTask(t)
+		t := task.NewInspTask(v)
+		cron.AddTask(&t)
 	}
 	return nil
 }

@@ -25,12 +25,12 @@ func (d LogDefault) ReadLog(filter config.LogFilter) ([]logger.Content, error) {
 	return nil, fmt.Errorf("default logger can't read, pease use other driver")
 }
 
-func (d LogDefault) Init(cfg *config.LogConfig) (logger.Logger, error) {
+func (d LogDefault) Init(cfg config.LogConfig) (logger.Logger, error) {
 	return LogDefault{}, nil
 }
 
 func (d LogDefault) GetID() config.Identity {
-	return ""
+	return config.Identity{}
 }
 
 func (d LogDefault) Log(l logger.Content) {

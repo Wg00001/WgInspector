@@ -18,7 +18,7 @@ func Use(cfg config.LogConfig) error {
 	if err != nil {
 		return err
 	}
-	init, err := driver.Init(&cfg)
+	init, err := driver.Init(cfg)
 	if err != nil {
 		return err
 	}

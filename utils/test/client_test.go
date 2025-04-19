@@ -16,7 +16,7 @@ import (
 func TestClientWebsocketStart(t *testing.T) {
 	start2.SetLocalConfigReaderOption("../../app/config", "local_file")
 	start2.InitOld()
-	err := client.Use(config.InitConfig{
+	err := client.Init(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws://127.0.0.1:9999",
 	})

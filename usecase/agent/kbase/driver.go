@@ -18,7 +18,7 @@ func Use(kbaseConfig config.KnowledgeBaseConfig) error {
 	if err != nil {
 		return err
 	}
-	init, err := driver.Init(&kbaseConfig)
+	init, err := driver.Init(kbaseConfig)
 	if err != nil {
 		return err
 	}

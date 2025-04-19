@@ -27,12 +27,11 @@ type AlerterFeishu struct {
 }
 
 func (a AlerterFeishu) Init(config config.AlertConfig) (alerter.Alerter, error) {
-	a.config = config
-	if webhook, ok := a.config.Option["webhook"]; !ok {
-		return AlerterFeishu{}, fmt.Errorf("alerter init fail: config without field 'WebHook'")
-	} else {
-		a.WebHook = webhook
+	err := json.Unmarshal(config.Option, &a)
+	if err != nil {
+		return nil, err
 	}
+	a.config = config
 	return a, nil
 }
 

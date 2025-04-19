@@ -15,7 +15,7 @@ import (
 )
 
 func TestClientWebsocketStart(t *testing.T) {
-	err := client.Use(config.InitConfig{
+	err := client.Init(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws://127.0.0.1:9999",
 	})
@@ -140,7 +140,7 @@ func TestHandleConfigUpdate_DB(t *testing.T) {
 	defer ts.Close()
 
 	// 初始化客户端
-	err := client.Use(config.InitConfig{
+	err := client.Init(config.InitConfig{
 		ClientDriver: "websocket",
 		ClientURL:    "ws" + strings.TrimPrefix(ts.URL, "http"),
 	})

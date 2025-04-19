@@ -50,7 +50,7 @@ func CallBack(configType string, data any, omit *websocket.Conn) error {
 	return cli.UpdateCallback(context.WithValue(context.Background(), "exclude", omit), configType, data)
 }
 
-func GetResponseMeta[T config2.Id](data T) any {
+func GetMetaItem[T config2.Id](data T) any {
 	config.RLock()
 	defer config.RUnlock()
 	switch any(data).(type) {

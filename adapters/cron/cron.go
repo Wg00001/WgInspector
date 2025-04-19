@@ -52,7 +52,7 @@ func (c *Cron) AddTask(task task.Task) error {
 	if err != nil {
 		return err
 	}
-	u := uuid.NewSHA1(uuid.NameSpaceOID, []byte(task.Identity().Str()))
+	u := uuid.NewSHA1(uuid.NameSpaceOID, []byte(task.Identity().ToString()))
 	c.s.RemoveJob(u)
 
 	_, err = c.s.NewJob(
@@ -64,7 +64,7 @@ func (c *Cron) AddTask(task task.Task) error {
 				return
 			}
 		}), // 任务函数和参数
-		gocron.WithName(task.Identity().Str()),
+		gocron.WithName(task.Identity().ToString()),
 		gocron.WithIdentifier(u),
 	)
 	return err

@@ -60,10 +60,10 @@ func Monitor(ctx context.Context) (<-chan []task.Stat, error) {
 	return globalCron.Monitor(ctx)
 }
 
-func DoNow(id string) error {
+func DoNow(id config.Identity) error {
 	mu.RLock()
 	defer mu.RUnlock()
-	t, ok := tasks[config.Identity(id)]
+	t, ok := tasks[id]
 	if !ok {
 		return fmt.Errorf("task not exist")
 	}

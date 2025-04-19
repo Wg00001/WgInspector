@@ -12,6 +12,10 @@ import (
  * @date 2025/2/10
  */
 
+func NewInspTask(taskConfig config.TaskConfig) Task {
+	return Task{Config: taskConfig}
+}
+
 // alert如果没有设置，那么应该继承父节点的alertID
 func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	defer func() {

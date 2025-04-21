@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"strings"
 )
@@ -25,7 +24,7 @@ func init() {
 
 type LogPostgre struct {
 	Config   config.LogConfig
-	LogDB    uuid.UUID
+	LogDB    config.Identity
 	LogTable string
 }
 

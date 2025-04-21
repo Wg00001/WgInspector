@@ -1,8 +1,7 @@
-config_reader: local_file
-config_parser: yaml
-client_driver: websocket
+base_dsn: "host=127.0.0.1 port=5432 user=postgres dbname=postgres password=03719 sslmode=disable"
 client_url: "ws://0.0.0.0:9999/"
+client_driver: websocket
 option:
   filepath: "./app/config"
   etcd_endpoint: "http://127.0.0.1:2379"
-#  etcd_endpoint: "http://host.docker.internal:2379"
+  #  etcd_endpoint: "http://host.docker.internal:2379"

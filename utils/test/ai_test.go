@@ -47,7 +47,7 @@ func TestAiTask(t *testing.T) {
 	fmt.Println(start2.InitLogger())
 	fmt.Println(start2.InitAlert())
 	//fmt.Println(start.InitAi())
-	err := analyzer.Use(*config2.Index.Agent)
+	err := analyzer.Register(*config2.Index.Agent)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -2,7 +2,6 @@ package analyzer
 
 import (
 	"WgInspector/entities/agent"
-	"WgInspector/entities/config"
 	"fmt"
 	"sync"
 )
@@ -12,19 +11,6 @@ import (
  * @author Wg
  * @date 2025/3/5
  */
-
-func Use(aiConfig config.AgentConfig) error {
-	driver, err := GetDriver(aiConfig.Driver)
-	if err != nil {
-		return err
-	}
-	init, err := driver.Init(&aiConfig)
-	if err != nil {
-		return err
-	}
-	Register(init)
-	return nil
-}
 
 var (
 	drivers  = make(map[string]agent.Analyzer)

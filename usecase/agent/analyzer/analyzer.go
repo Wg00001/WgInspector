@@ -2,8 +2,8 @@ package analyzer
 
 import (
 	"WgInspector/entities/agent"
+	"WgInspector/entities/config"
 	"fmt"
-	"log"
 	"sync"
 )
 
@@ -13,26 +13,33 @@ import (
  * @date 2025/2/25
  */
 
-//根据driver找到对应的adapter实现，以init全局analyzer
-
 var (
-	a  agent.Analyzer
-	mu sync.Mutex
+	pool = sync.Map{}
 )
 
-func Register(oa agent.Analyzer) {
-	mu.Lock()
-	defer mu.Unlock()
-	a = oa
-	log.Printf("analyzer: registry: %#v\n", oa)
+func Register(aiConfig config.AgentConfig) error {
+	driver, err := GetDriver(aiConfig.Driver)
+	if err != nil {
+		return err
+	}
+	init, err := driver.Init(&aiConfig)
+	if err != nil {
+		return err
+	}
+	pool.Store(aiConfig.Identity, init)
+	return nil
 }
 
-func Analyze(content *agent.AnalyzeContent) (string, error) {
-	if a == nil {
-		return "", fmt.Errorf("openai analyzer has not init")
+//根据driver找到对应的adapter实现，以init全局analyzer
+
+func Get(agentID config.Identity) (agent.Analyzer, error) {
+	a, ok := pool.Load(agentID)
+	if !ok {
+		return nil, fmt.Errorf("analyzer: config not exist: %s\n", agentID)
 	}
-	if content == nil {
-		return "", fmt.Errorf("content cannot be nil")
+	res, ok := a.(agent.Analyzer)
+	if !ok {
+		return nil, fmt.Errorf("analyzer: type err: %s\n", agentID)
 	}
-	return a.Analyze(content)
+	return res, nil
 }

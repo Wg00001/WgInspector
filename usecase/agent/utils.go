@@ -66,8 +66,12 @@ func generateQueryEmbedding(query string, base agent.KnowledgeBase) ([]float32, 
 }
 
 // 使用Ai进行分析获取搜索关键词（并解析JSON
-func generateQueryWithAI(logContent *string) (*agent.QueryData, error) {
-	res, err := analyzer.Analyze(&agent.AnalyzeContent{
+func (t *AgentTask) generateQueryWithAI(logContent *string) (*agent.QueryData, error) {
+	kba, err := analyzer.Get(t.KbaseAgentID)
+	if err != nil {
+		return nil, err
+	}
+	res, err := kba.Analyze(&agent.AnalyzeContent{
 		SystemMsg: utils.DefaultKBaseSystemMessage,
 		UserMsg:   *logContent,
 	})

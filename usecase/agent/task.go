@@ -66,7 +66,11 @@ func (t *AgentTask) Do(context.Context) error {
 	}
 
 	//5. 发送Ai获取结果
-	res, err := analyzer.Analyze(content)
+	a, err := analyzer.Get(t.AgentID)
+	if err != nil {
+		return err
+	}
+	res, err := a.Analyze(content)
 	if err != nil {
 		return err
 	}
@@ -106,7 +110,7 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 		return nil, fmt.Errorf("empty input message")
 	}
 	//使用Ai生成日志的关键词
-	queryData, err := generateQueryWithAI(msg)
+	queryData, err := t.generateQueryWithAI(msg)
 	if err != nil {
 		return nil, err
 	}

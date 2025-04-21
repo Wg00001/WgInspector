@@ -96,6 +96,8 @@ type AgentTaskConfig struct {
 	LogID         Identity
 	LogFilter     LogFilter
 	AlertID       Identity
+	AgentID       Identity
+	KbaseAgentID  Identity
 	KBase         []Identity
 	KBaseResults  int
 	KBaseMaxLen   int

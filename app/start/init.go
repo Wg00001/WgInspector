@@ -183,14 +183,23 @@ func InitAlert() error {
 func InitAiConfig() error {
 	config2.RLock()
 	defer config2.RUnlock()
-	return analyzer.Use(config2.Meta.Agents)
+	for _, v := range config2.Meta.Agents {
+		err := analyzer.Register(v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func InitAiTask() error {
 	config2.RLock()
 	defer config2.RUnlock()
 	for _, v := range config2.Meta.AgentTasks {
-		cron.AddTask(agent.NewTask(v))
+		err := cron.AddTask(agent.NewTask(v))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

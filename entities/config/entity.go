@@ -14,8 +14,8 @@ import (
  */
 
 type InitConfig struct {
-	BaseDSN   string
-	ClientURL string
+	BaseDSN   string `yaml:"base_dsn"`
+	ClientURL string `yaml:"client_url"`
 	Option    utils.Option
 }
 

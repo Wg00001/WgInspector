@@ -11,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 )
 
 /**
@@ -47,21 +46,21 @@ func TestAiTask(t *testing.T) {
 	fmt.Println(start2.InitLogger())
 	fmt.Println(start2.InitAlert())
 	//fmt.Println(start.InitAi())
-	err := analyzer.Register(*config2.Index.Agent)
+	err := analyzer.Register(config2.Meta.Agents[0])
 	if err != nil {
 		fmt.Println(err)
 	}
-	tsk := ai2.NewTask(&config.AgentTaskConfig{
-		Identity: "1",
-		Cron: &config.Cron{
-			Duration: time.Second * 10,
-		},
-		LogID: "1",
-		LogFilter: config.LogFilter{
-			StartTime: time.Now().AddDate(0, 0, -3),
-			InspNames: []config.Identity{"1"},
-		},
-		AlertID: "3",
+	tsk := ai2.NewTask(config.AgentTaskConfig{
+		//Identity: "1",
+		//Cron: &config.Cron{
+		//	Duration: time.Second * 10,
+		//},
+		//LogID: "1",
+		//LogFilter: config.LogFilter{
+		//	StartTime: time.Now().AddDate(0, 0, -3),
+		//	InspNames: []config.Identity{"1"},
+		//},
+		//AlertID: "3",
 	})
 	fmt.Println(tsk.Do(context.Background()))
 }

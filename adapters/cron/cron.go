@@ -155,11 +155,11 @@ func (c *Cron) jobStats() ([]task.Stat, error) {
 }
 
 // 将task中的时间设置读取到cron的对象中
-func jobDefinition(t *config.Cron) (gocron.JobDefinition, error) {
-	if t == nil {
-		return nil, fmt.Errorf("gocron add task err, time not define, taskname: %s\n", t)
-	}
-	cConfig := *t
+func jobDefinition(t config.Cron) (gocron.JobDefinition, error) {
+	//if t.Duration == "" {
+	//	return nil, fmt.Errorf("gocron add task err, time not define, taskname: %s\n", t)
+	//}
+	cConfig := t
 
 	//使用cron表达式
 	if t.CronTab != "" {

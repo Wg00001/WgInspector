@@ -3,7 +3,6 @@ package config
 import (
 	"WgInspector/utils"
 	"encoding/json"
-	"github.com/google/uuid"
 	"time"
 )
 
@@ -32,8 +31,8 @@ type MetaConfig struct {
 }
 
 type Identity struct {
-	UUID uuid.UUID
-	Name string
+	ID   int    `gorm:"type:bigserial" json:"id"`
+	Name string `json:"name"`
 }
 
 type DBConfig struct {
@@ -45,28 +44,28 @@ type DBConfig struct {
 type LogConfig struct {
 	Identity
 	Driver string
-	Option json.RawMessage
+	Option json.RawMessage `gorm:"type:jsonb"`
 }
 
 type AlertConfig struct {
 	Identity
 	Driver string
-	Option json.RawMessage
+	Option json.RawMessage `gorm:"type:jsonb"`
 }
 
 // ---task(任务)相关配置
 
 type TaskConfig struct {
 	Identity
-	Cron         *Cron
+	Cron         Cron `gorm:"type:jsonb"`
 	AllInspector bool
 
-	LogID    Identity
-	AlertID  Identity
-	TargetDB []Identity
+	LogID    Identity   `gorm:"type:jsonb"`
+	AlertID  Identity   `gorm:"type:jsonb"`
+	TargetDB []Identity `gorm:"type:jsonb"`
 
-	Todo    []Identity
-	NotTodo []Identity
+	Todo    []Identity `gorm:"type:jsonb"`
+	NotTodo []Identity `gorm:"type:jsonb"`
 }
 
 type Cron struct {
@@ -92,13 +91,13 @@ type AgentConfig struct {
 
 type AgentTaskConfig struct {
 	Identity
-	Cron          *Cron
-	LogID         Identity
-	LogFilter     LogFilter
-	AlertID       Identity
-	AgentID       Identity
-	KbaseAgentID  Identity
-	KBase         []Identity
+	Cron          Cron       `gorm:"type:jsonb"`
+	LogFilter     LogFilter  `gorm:"type:jsonb"`
+	LogID         Identity   `gorm:"type:jsonb"`
+	AlertID       Identity   `gorm:"type:jsonb"`
+	AgentID       Identity   `gorm:"type:jsonb"`
+	KbaseAgentID  Identity   `gorm:"type:jsonb"`
+	KBase         []Identity `gorm:"type:jsonb"`
 	KBaseResults  int
 	KBaseMaxLen   int
 	SystemMessage string
@@ -117,6 +116,6 @@ type LogFilter struct {
 type KnowledgeBaseConfig struct {
 	Identity
 	Driver  string
-	AgentID Identity
-	Option  map[string]interface{}
+	AgentID Identity               `gorm:"type:jsonb"`
+	Option  map[string]interface{} `gorm:"type:jsonb"`
 }

@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 /**
  * @description:
  * @author Wg
@@ -15,5 +17,5 @@ func (n Identity) GetIdentity() Identity {
 }
 
 func (n Identity) ToString() string {
-	return n.Name + n.UUID.String()
+	return fmt.Sprintf("%d-%s", n.ID, n.Name)
 }

@@ -52,7 +52,7 @@ func SetConfigMeta(c config.MetaConfig) error {
 	AppendConfigs(config.TypeAgent, c.Agents...)
 	AppendConfigs(config.TypeAgentTask, c.AgentTasks...)
 	AppendConfigs(config.TypeKBase, c.KBases...)
-	AppendConfigs(config.TypeInspector, c.Insp)
+	AppendConfigs(config.TypeInspector, c.InspNodes...)
 	return nil
 }
 

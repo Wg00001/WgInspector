@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"sort"
 	"strings"
 )
@@ -17,8 +16,8 @@ import (
 type InspNode struct {
 	Identity
 	SQL       string
-	Children  Map
 	AlertWhen string
+	Children  Map `gorm:"-"`
 	//AlertID   Identity
 	//AlertFunc func(alerter.Content) error //包括检查是否符合报警条件，并且发送报警
 }
@@ -31,7 +30,7 @@ type InspTree struct {
 
 func (InspTree) GetIdentity() Identity {
 	return Identity{
-		UUID: uuid.UUID{},
+		ID:   0,
 		Name: "insp_tree",
 	}
 }

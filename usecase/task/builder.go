@@ -23,7 +23,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 			err = fmt.Errorf("init task fail: %s", err.Error())
 		}
 	}()
-	//if taskCfg.UUID == nil {
+	//if taskCfg.ID == nil {
 	//	return nil, fmt.Errorf("config is nil")
 	//}
 	res = &taskPlan{

@@ -11,14 +11,14 @@ import (
  */
 
 const (
-	TypeLog       = "Log"
-	TypeDB        = "DB"
-	TypeAlert     = "Alert"
-	TypeTask      = "Task"
-	TypeAgent     = "Agents"
-	TypeAgentTask = "AgentTask"
-	TypeKBase     = "KBase"
-	TypeInspector = "Inspector"
+	TypeLog       = "log_config"
+	TypeDB        = "db_config"
+	TypeAlert     = "alert_config"
+	TypeTask      = "task_config"
+	TypeAgent     = "agent_config"
+	TypeAgentTask = "agent_task_config"
+	TypeKBase     = "kbase_config"
+	TypeInspector = "inspector_config"
 )
 
 type ConfigType interface {
@@ -47,4 +47,36 @@ func GetConfigTypeName(data any) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown config type: %T", data)
 	}
+}
+
+func (t DBConfig) TableName() string {
+	return TypeDB
+}
+
+func (l LogConfig) TableName() string {
+	return TypeLog
+}
+
+func (a AlertConfig) TableName() string {
+	return TypeAlert
+}
+
+func (t TaskConfig) TableName() string {
+	return TypeTask
+}
+
+func (a AgentConfig) TableName() string {
+	return TypeAgent
+}
+
+func (a AgentTaskConfig) TableName() string {
+	return TypeAgentTask
+}
+
+func (k KnowledgeBaseConfig) TableName() string {
+	return TypeKBase
+}
+
+func (i InspNode) TableName() string {
+	return TypeInspector
 }

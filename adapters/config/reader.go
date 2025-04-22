@@ -40,17 +40,15 @@ func (ConfigReaderPostgre) NewReader(db *gorm.DB) (config.Reader, error) {
 }
 
 func (c ConfigReaderPostgre) ReadConfig() error {
-	config2.RLock()
-	defer config2.RUnlock()
 	meta := config.MetaConfig{}
-	c.Table(config.TypeInspector).Select("*").Find(meta.InspNodes)
-	c.Table(config.TypeAgent).Select("*").Find(meta.Agents)
-	c.Table(config.TypeDB).Select("*").Find(meta.DBs)
-	c.Table(config.TypeTask).Select("*").Find(meta.Tasks)
-	c.Table(config.TypeKBase).Select("*").Find(meta.KBases)
-	c.Table(config.TypeAgentTask).Select("*").Find(meta.AgentTasks)
-	c.Table(config.TypeLog).Select("*").Find(meta.Logs)
-	c.Table(config.TypeAlert).Select("*").Find(meta.Alerts)
+	c.Table(config.TypeAgent).Select("*").Find(&meta.Agents)
+	c.Table(config.TypeDB).Select("*").Find(&meta.DBs)
+	c.Table(config.TypeTask).Select("*").Find(&meta.Tasks)
+	c.Table(config.TypeKBase).Select("*").Find(&meta.KBases)
+	c.Table(config.TypeAgentTask).Select("*").Find(&meta.AgentTasks)
+	c.Table(config.TypeLog).Select("*").Find(&meta.Logs)
+	c.Table(config.TypeAlert).Select("*").Find(&meta.Alerts)
+	c.Table(config.TypeInspector).Select("*").Find(&meta.InspNodes)
 	return config2.SetConfigMeta(meta)
 }
 

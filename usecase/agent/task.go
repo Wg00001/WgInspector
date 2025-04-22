@@ -94,7 +94,7 @@ func (t *AgentTask) Do(context.Context) error {
 
 }
 
-func (t *AgentTask) GetCron() *config.Cron {
+func (t *AgentTask) GetCron() config.Cron {
 	return t.Cron
 }
 

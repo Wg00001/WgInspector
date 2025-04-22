@@ -201,7 +201,9 @@ func responseWithCallback(conn *websocket.Conn, msgMeta MsgMeta, obj any) error 
 func parseJson[T config.Id](configData json.RawMessage) T {
 	var res T
 	err := json.Unmarshal(configData, &res)
-	panic(fmt.Errorf("json parse fail: type %s, data: %v, err:%v", reflect.TypeOf(res), string(configData), err))
+	if err != nil {
+		panic(fmt.Errorf("json parse fail: type %s, data: %v, err:%v", reflect.TypeOf(res), string(configData), err))
+	}
 	return res
 }
 

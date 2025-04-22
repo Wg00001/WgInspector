@@ -3,7 +3,14 @@ package config
 import (
 	"WgInspector/entities/config"
 	config2 "WgInspector/usecase/config"
+	"WgInspector/utils"
+	"fmt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"log"
+	"os"
+	"reflect"
+	"time"
 )
 
 /**
@@ -36,7 +43,15 @@ func (ConfigReaderPostgre) NewReader(db *gorm.DB) (config.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ConfigReaderPostgre{DB: db}, nil
+	db.Logger = logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: time.Second,
+			LogLevel:      logger.Info,
+			Colorful:      true,
+		},
+	)
+	return ConfigReaderPostgre{DB: db.Debug()}, nil
 }
 
 func (c ConfigReaderPostgre) ReadConfig() error {
@@ -58,10 +73,44 @@ func (c ConfigReaderPostgre) SaveConfig(data config.Id) error {
 	if err != nil {
 		return err
 	}
-	return c.Table(dataType).
-		Save(data).
-		//Where("identity = ?", data.GetIdentity()).
-		Error
+
+	// 将结构体转换为map
+	value := reflect.ValueOf(data)
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	// 创建map
+	mapData := make(map[string]interface{})
+	t := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		field := t.Field(i)
+		// 跳过嵌入字段Identity，单独处理
+		if field.Anonymous && field.Type.Name() == "Identity" {
+			identityValue := value.Field(i)
+			// 获取Identity的Name字段
+			if nameField := identityValue.FieldByName("Name"); nameField.IsValid() {
+				mapData["name"] = nameField.String()
+			}
+			if nameField := identityValue.FieldByName("ID"); nameField.IsValid() && nameField.Int() != 0 {
+				mapData["id"] = nameField.Int()
+			}
+			continue
+		}
+		mapData[utils.ToSnakeCase(field.Name)] = value.Field(i).Interface()
+	}
+	fmt.Printf("Data type: %T\n", data)
+
+	if data.GetIdentity().ID == 0 {
+		return c.Table(dataType).
+			Create(mapData).
+			Error
+	} else {
+		return c.Table(dataType).
+			Where("id = ?", data.GetIdentity().ID).
+			Updates(mapData).
+			Error
+	}
 }
 
 func (c ConfigReaderPostgre) DeleteConfig(data config.Id) error {
@@ -70,6 +119,7 @@ func (c ConfigReaderPostgre) DeleteConfig(data config.Id) error {
 		return err
 	}
 	return c.Table(dataType).
+		Where("id = ?", data.GetIdentity().ID).
 		Delete(data).
 		Error
 }

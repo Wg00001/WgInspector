@@ -45,18 +45,21 @@ func GetAllInsp() []*config.InspNode {
 }
 
 func SetConfigMeta(c config.MetaConfig) error {
-	AppendConfigs(config.TypeAlert, c.Alerts...)
-	AppendConfigs(config.TypeDB, c.DBs...)
-	AppendConfigs(config.TypeLog, c.Logs...)
-	AppendConfigs(config.TypeTask, c.Tasks...)
-	AppendConfigs(config.TypeAgent, c.Agents...)
-	AppendConfigs(config.TypeAgentTask, c.AgentTasks...)
-	AppendConfigs(config.TypeKBase, c.KBases...)
-	AppendConfigs(config.TypeInspector, c.InspNodes...)
+	mu.Lock()
+	Meta = c
+	mu.Unlock()
+	AppendIndex(config.TypeAlert, c.Alerts...)
+	AppendIndex(config.TypeDB, c.DBs...)
+	AppendIndex(config.TypeLog, c.Logs...)
+	AppendIndex(config.TypeTask, c.Tasks...)
+	AppendIndex(config.TypeAgent, c.Agents...)
+	AppendIndex(config.TypeAgentTask, c.AgentTasks...)
+	AppendIndex(config.TypeKBase, c.KBases...)
+	AppendIndex(config.TypeInspector, c.InspNodes...)
 	return nil
 }
 
-func AppendConfigs[T config.Id](configTypes string, configs ...T) {
+func AppendIndex[T config.Id](configTypes string, configs ...T) {
 	mu.Lock()
 	defer mu.Unlock()
 	key := Key{ConfigType: configTypes}
@@ -91,7 +94,7 @@ func Save(key Key, val config.Id) (err error) {
 		return err
 	}
 	delete(index, key)
-	AppendConfigs(key.ConfigType, val)
+	AppendIndex(key.ConfigType, val)
 	return nil
 }
 
@@ -103,6 +106,6 @@ func Del(key Key, val config.Id) error {
 		return err
 	}
 	delete(index, key)
-	AppendConfigs(key.ConfigType, val)
+	AppendIndex(key.ConfigType, val)
 	return nil
 }

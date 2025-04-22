@@ -45,5 +45,10 @@ func main() {
 		client.Listen(ctx)
 	}()
 
-	log.Println("[INFO] === System services started ===")
+	log.Println("[INFO] === System services Started ===")
+
+	select {
+	case <-ctx.Done():
+		log.Println("[INFO] === System services Exited ===")
+	}
 }

@@ -22,8 +22,12 @@ const (
 )
 
 type ConfigType interface {
-	InitConfig | DBConfig | TaskConfig | LogConfig | AlertConfig |
-		AgentConfig | AgentTaskConfig | KnowledgeBaseConfig | InspTree | *InspTree
+	DBConfig | TaskConfig | LogConfig | AlertConfig |
+		AgentConfig | AgentTaskConfig | KnowledgeBaseConfig | InspNode
+}
+
+func Turn[T ConfigType](data Id) T {
+	return any(data).(T)
 }
 
 func GetConfigTypeName(data any) (string, error) {

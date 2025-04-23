@@ -36,7 +36,11 @@ var (
 )
 
 func LoadConfig() error {
-	err := reader.ReadConfig()
+	meta, err := reader.ReadConfig()
+	if err != nil {
+		return err
+	}
+	err = SetConfigMeta(meta)
 	if err != nil {
 		return err
 	}

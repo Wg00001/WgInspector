@@ -69,7 +69,7 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 	case "openai":
 	default:
 		//agentConfig := config2.GetAgentConfig()
-		agentConfig, _ := config2.Get[config.AgentConfig](config2.Key{
+		agentConfig, _ := config2.GetWithType[config.AgentConfig](config2.Key{
 			ConfigType: config.TypeAgent,
 			Identity:   k.Config.AgentID,
 		})

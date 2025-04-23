@@ -31,7 +31,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 		inspNodes: []*config.InspNode{},
 	}
 	for _, val := range taskCfg.TargetDB {
-		dbcfg, err := config2.Get[config.DBConfig](config2.Key{
+		dbcfg, err := config2.GetWithType[config.DBConfig](config2.Key{
 			ConfigType: config.TypeDB,
 			Identity:   val,
 		})

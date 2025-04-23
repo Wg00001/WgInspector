@@ -13,9 +13,9 @@ import (
  */
 
 var (
-	// Meta 对pgsql中数据的缓存
+	// Meta : 对pgsql中数据的缓存
 	Meta     = config.MetaConfig{Insp: config.NewTree()}
-	index    = make(map[Key]config.Id)
+	index    = make(map[Key]*config.Id)
 	mu       sync.RWMutex
 	appendMU sync.Mutex
 )
@@ -66,12 +66,13 @@ func AppendIndex[T config.Id](configTypes string, configs ...T) {
 	key := Key{ConfigType: configTypes}
 	for i := range configs {
 		key.Identity = configs[i].GetIdentity()
-		index[key] = configs[i]
+		a := any(configs[i]).(config.Id)
+		index[key] = &a
 	}
 	return
 }
 
-func Get[T config.Id](key Key) (res T, err error) {
+func Get(key Key) (res config.Id, err error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	data, ok := index[key]
@@ -79,7 +80,23 @@ func Get[T config.Id](key Key) (res T, err error) {
 		err = fmt.Errorf("config_center: entry not exist - key:[%v]", key)
 		return
 	}
-	res, ok = any(data).(T)
+	res, ok = any(*data).(config.Id)
+	if !ok {
+		err = fmt.Errorf("config_center: type of entry not allow - key:[%v]", key)
+		return
+	}
+	return
+}
+
+func GetWithType[T config.ConfigType](key Key) (res T, err error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	data, ok := index[key]
+	if !ok {
+		err = fmt.Errorf("config_center: entry not exist - key:[%v]", key)
+		return
+	}
+	res, ok = any(*data).(T)
 	if !ok {
 		err = fmt.Errorf("config_center: type of entry not allow - key:[%v]", key)
 		return
@@ -88,25 +105,65 @@ func Get[T config.Id](key Key) (res T, err error) {
 }
 
 func Save(key Key, val config.Id) (err error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	err = reader.SaveConfig(val)
+	mu.Lock()
+	defer mu.Unlock()
+	key.ID, err = reader.SaveConfig(val)
 	if err != nil {
 		return err
 	}
-	delete(index, key)
-	AppendIndex(key.ConfigType, val)
-	return nil
+	//_, ok := index[key]
+	//if !ok {
+	//	AppendIndex(key.ConfigType, val)
+	//} else {
+	//	//todo： test deepcopy
+	//	return util.DeepCopy(index[key], &val)
+	//}
+	return syncWithDB(key.ConfigType)
 }
 
 func Del(key Key, val config.Id) error {
-	mu.RLock()
-	defer mu.RUnlock()
+	mu.Lock()
+	defer mu.Unlock()
 	err := reader.DeleteConfig(val)
 	if err != nil {
 		return err
 	}
 	delete(index, key)
-	AppendIndex(key.ConfigType, val)
+	return syncWithDB(key.ConfigType)
+}
+
+func syncWithDB(configType string) error {
+	meta, err := reader.ReadConfig(configType)
+	if err != nil {
+		return err
+	}
+	switch configType {
+	case config.TypeDB:
+		Meta.DBs = meta.DBs
+		AppendIndex(config.TypeDB, Meta.DBs...)
+	case config.TypeLog:
+		Meta.Logs = meta.Logs
+		AppendIndex(config.TypeLog, Meta.Logs...)
+	case config.TypeAlert:
+		Meta.Alerts = meta.Alerts
+		AppendIndex(config.TypeAlert, Meta.Alerts...)
+	case config.TypeTask:
+		Meta.Tasks = meta.Tasks
+		AppendIndex(config.TypeTask, Meta.Tasks...)
+	case config.TypeAgent:
+		Meta.Agents = meta.Agents
+		AppendIndex(config.TypeAgent, Meta.Agents...)
+	case config.TypeAgentTask:
+		Meta.AgentTasks = meta.AgentTasks
+		AppendIndex(config.TypeAgentTask, Meta.AgentTasks...)
+	case config.TypeKBase:
+		Meta.KBases = meta.KBases
+		AppendIndex(config.TypeKBase, Meta.KBases...)
+	case config.TypeInspector:
+		Meta.InspNodes = meta.InspNodes
+		AppendIndex(config.TypeInspector, Meta.InspNodes...)
+	default:
+		return fmt.Errorf("unsupported config type: %s", configType)
+	}
 	return nil
 }

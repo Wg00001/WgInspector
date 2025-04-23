@@ -3,13 +3,11 @@ package config
 import (
 	"WgInspector/entities/config"
 	config2 "WgInspector/usecase/config"
-	"WgInspector/utils"
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
 	"os"
-	"reflect"
 	"time"
 )
 
@@ -54,63 +52,101 @@ func (ConfigReaderPostgre) NewReader(db *gorm.DB) (config.Reader, error) {
 	return ConfigReaderPostgre{DB: db.Debug()}, nil
 }
 
-func (c ConfigReaderPostgre) ReadConfig() error {
+func (c ConfigReaderPostgre) ReadConfig(configTypes ...string) (config.MetaConfig, error) {
 	meta := config.MetaConfig{}
-	c.Table(config.TypeAgent).Select("*").Find(&meta.Agents)
-	c.Table(config.TypeDB).Select("*").Find(&meta.DBs)
-	c.Table(config.TypeTask).Select("*").Find(&meta.Tasks)
-	c.Table(config.TypeKBase).Select("*").Find(&meta.KBases)
-	c.Table(config.TypeAgentTask).Select("*").Find(&meta.AgentTasks)
-	c.Table(config.TypeLog).Select("*").Find(&meta.Logs)
-	c.Table(config.TypeAlert).Select("*").Find(&meta.Alerts)
-	c.Table(config.TypeInspector).Select("*").Find(&meta.InspNodes)
-	return config2.SetConfigMeta(meta)
+	fMap := map[string]func() error{
+		config.TypeDB: func() error {
+			return c.Table(config.TypeDB).Select("*").Find(&meta.DBs).Error
+		},
+		config.TypeTask: func() error {
+			return c.Table(config.TypeTask).Select("*").Find(&meta.Tasks).Error
+		},
+		config.TypeKBase: func() error {
+			return c.Table(config.TypeKBase).Select("*").Find(&meta.KBases).Error
+		},
+		config.TypeAgentTask: func() error {
+			return c.Table(config.TypeAgentTask).Select("*").Find(&meta.AgentTasks).Error
+		},
+		config.TypeLog: func() error {
+			return c.Table(config.TypeLog).Select("*").Find(&meta.Logs).Error
+		},
+		config.TypeAlert: func() error {
+			return c.Table(config.TypeAlert).Select("*").Find(&meta.Alerts).Error
+		},
+		config.TypeAgent: func() error {
+			return c.Table(config.TypeAgent).Select("*").Find(&meta.Agents).Error
+		},
+		config.TypeInspector: func() error {
+			return c.Table(config.TypeInspector).Select("*").Find(&meta.InspNodes).Error
+		},
+	}
+
+	var executeFuncs []func() error
+	if len(configTypes) == 0 {
+		for _, fn := range fMap {
+			executeFuncs = append(executeFuncs, fn)
+		}
+	} else {
+		for _, ct := range configTypes {
+			fn, ok := fMap[ct]
+			if !ok {
+				return meta, fmt.Errorf("unknown config type: %s", ct)
+			}
+			executeFuncs = append(executeFuncs, fn)
+		}
+	}
+
+	for _, fn := range executeFuncs {
+		if err := fn(); err != nil {
+			return meta, err
+		}
+	}
+	return meta, nil
 }
 
 // SaveConfig 创建或更新
-func (c ConfigReaderPostgre) SaveConfig(data config.Id) error {
-	dataType, err := config.GetConfigTypeName(data)
-	if err != nil {
-		return err
+func (c ConfigReaderPostgre) SaveConfig(data config.Id) (int, error) {
+	switch v := data.(type) {
+	case config.DBConfig:
+		res, err := save[config.DBConfig](c.DB, v)
+		return res.ID, err
+	case config.LogConfig:
+		res, err := save[config.LogConfig](c.DB, v)
+		return res.ID, err
+	case config.AlertConfig:
+		res, err := save[config.AlertConfig](c.DB, v)
+		return res.ID, err
+	case config.TaskConfig:
+		res, err := save[config.TaskConfig](c.DB, v)
+		return res.ID, err
+	case config.AgentConfig:
+		res, err := save[config.AgentConfig](c.DB, v)
+		return res.ID, err
+	case config.AgentTaskConfig:
+		res, err := save[config.AgentTaskConfig](c.DB, v)
+		return res.ID, err
+	case config.KnowledgeBaseConfig:
+		res, err := save[config.KnowledgeBaseConfig](c.DB, v)
+		return res.ID, err
+	case config.InspNode:
+		res, err := save[config.InspNode](c.DB, v)
+		return res.ID, err
+	default:
+		return 0, fmt.Errorf("unknown config type: %T", data)
 	}
+}
 
-	// 将结构体转换为map
-	value := reflect.ValueOf(data)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-
-	// 创建map
-	mapData := make(map[string]interface{})
-	t := value.Type()
-	for i := 0; i < value.NumField(); i++ {
-		field := t.Field(i)
-		// 跳过嵌入字段Identity，单独处理
-		if field.Anonymous && field.Type.Name() == "Identity" {
-			identityValue := value.Field(i)
-			// 获取Identity的Name字段
-			if nameField := identityValue.FieldByName("Name"); nameField.IsValid() {
-				mapData["name"] = nameField.String()
-			}
-			if nameField := identityValue.FieldByName("ID"); nameField.IsValid() && nameField.Int() != 0 {
-				mapData["id"] = nameField.Int()
-			}
-			continue
-		}
-		mapData[utils.ToSnakeCase(field.Name)] = value.Field(i).Interface()
-	}
-	fmt.Printf("Data type: %T\n", data)
-
+func save[T config.ConfigType](db *gorm.DB, data config.Id) (T, error) {
+	res := config.Turn[T](data)
+	var err error
 	if data.GetIdentity().ID == 0 {
-		return c.Table(dataType).
-			Create(mapData).
-			Error
+		err = db.Create(&res).Error
 	} else {
-		return c.Table(dataType).
-			Where("id = ?", data.GetIdentity().ID).
-			Updates(mapData).
+		err = db.Where("id = ?", data.GetIdentity().ID).
+			Updates(&res).
 			Error
 	}
+	return res, err
 }
 
 func (c ConfigReaderPostgre) DeleteConfig(data config.Id) error {

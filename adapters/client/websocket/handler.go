@@ -89,7 +89,7 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 			continue
 		}
 
-		handleFunc := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
+		handleAndResp := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
 			if user.Level < authLevel {
 				return response(conn, msg.MsgMeta, fmt.Errorf("no permission"))
 			}
@@ -103,14 +103,14 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 				logErr(clientActionGet, response(conn, msg.MsgMeta, client2.GetConfigMeta()))
 				config2.RUnlock()
 			} else {
-				logErr(clientActionGet, handleFunc(getHandler, response, 0))
+				logErr(clientActionGet, handleAndResp(getHandler, response, 0))
 			}
 		case clientActionUpdate:
-			logErr(clientActionUpdate, handleFunc(updateHandler, responseWithCallback, 1))
+			logErr(clientActionUpdate, handleAndResp(updateHandler, responseWithCallback, 1))
 		case clientActionDelete:
-			logErr(clientActionDelete, handleFunc(deleteHandler, responseWithCallback, 1))
+			logErr(clientActionDelete, handleAndResp(deleteHandler, responseWithCallback, 1))
 		case clientActionCreate:
-			logErr(clientActionCreate, handleFunc(createHandler, responseWithCallback, 1))
+			logErr(clientActionCreate, handleAndResp(createHandler, responseWithCallback, 1))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
@@ -241,7 +241,8 @@ func createHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return client2.GetMetaItem(arg)
+	m := client2.GetMetaItem(arg)
+	return m
 }
 
 func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg RequestMsg) error {

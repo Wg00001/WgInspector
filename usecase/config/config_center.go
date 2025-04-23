@@ -14,9 +14,10 @@ import (
 
 var (
 	// Meta 对pgsql中数据的缓存
-	Meta  = config.MetaConfig{Insp: config.NewTree()}
-	index = make(map[Key]config.Id)
-	mu    sync.RWMutex
+	Meta     = config.MetaConfig{Insp: config.NewTree()}
+	index    = make(map[Key]config.Id)
+	mu       sync.RWMutex
+	appendMU sync.Mutex
 )
 
 type Key struct {
@@ -60,8 +61,8 @@ func SetConfigMeta(c config.MetaConfig) error {
 }
 
 func AppendIndex[T config.Id](configTypes string, configs ...T) {
-	mu.Lock()
-	defer mu.Unlock()
+	appendMU.Lock()
+	defer appendMU.Unlock()
 	key := Key{ConfigType: configTypes}
 	for i := range configs {
 		key.Identity = configs[i].GetIdentity()
@@ -87,8 +88,8 @@ func Get[T config.Id](key Key) (res T, err error) {
 }
 
 func Save(key Key, val config.Id) (err error) {
-	mu.Lock()
-	defer mu.Unlock()
+	mu.RLock()
+	defer mu.RUnlock()
 	err = reader.SaveConfig(val)
 	if err != nil {
 		return err
@@ -99,8 +100,8 @@ func Save(key Key, val config.Id) (err error) {
 }
 
 func Del(key Key, val config.Id) error {
-	mu.Lock()
-	defer mu.Unlock()
+	mu.RLock()
+	defer mu.RUnlock()
 	err := reader.DeleteConfig(val)
 	if err != nil {
 		return err

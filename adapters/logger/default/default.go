@@ -35,7 +35,7 @@ func (d LogDefault) GetID() config.Identity {
 
 func (d LogDefault) Log(l logger.LogContent) {
 	//utils.PrintQuery(l, rows)
-	log.Println(l.Result)
+	log.Println(string(l.Result))
 }
 
 var _ logger.Logger = (*LogDefault)(nil)

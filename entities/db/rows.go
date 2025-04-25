@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -59,4 +61,12 @@ func RowsToResult(rows *sql.Rows) (Result, error) {
 	}
 
 	return result, nil
+}
+
+func (r Result) MarshallJSON() []byte {
+	marshal, err := json.Marshal(r)
+	if err != nil {
+		return []byte(fmt.Sprintf("Json marshall fail: %s", err))
+	}
+	return marshal
 }

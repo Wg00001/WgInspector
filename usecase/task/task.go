@@ -33,6 +33,8 @@ type taskPlan struct {
 
 var _ task.Task = (*Task)(nil)
 
+// todo:性能优化
+
 func (t *Task) Do(ctx context.Context) error {
 	taskId := time.Now().Format("20060102_150405")
 	tp, err := newTaskPlan(t.Config)
@@ -66,11 +68,11 @@ func (t *Task) Do(ctx context.Context) error {
 				Get(t.Config.LogID).
 				Log(logger.LogContent{
 					Timestamp: time.Now(),
-					TaskName:  t.Config.Identity,
+					TaskName:  t.Config.Identity.Name,
 					TaskID:    taskId,
-					InspName:  inspect.Identity,
-					DBName:    tdb.Identity,
-					Result:    result,
+					InspName:  inspect.Identity.Name,
+					DBName:    tdb.Identity.Name,
+					Result:    result.MarshallJSON(),
 				})
 
 			//报警

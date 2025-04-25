@@ -65,13 +65,13 @@ func (tg *TaskGroups) SyncAppend(c *logger.LogContent) {
 	tg.Lock()
 	defer tg.Unlock()
 
-	if _, ok := tg.Tasks[c.TaskName.ToString()]; !ok {
-		tg.Tasks[c.TaskName.ToString()] = &Task{
-			TaskName: c.TaskName.ToString(),
+	if _, ok := tg.Tasks[c.TaskName]; !ok {
+		tg.Tasks[c.TaskName] = &Task{
+			TaskName: c.TaskName,
 			DBGroups: make(map[string]*DB),
 		}
 	}
-	tg.Tasks[c.TaskName.ToString()].Append(c)
+	tg.Tasks[c.TaskName].Append(c)
 }
 
 func (tg *TaskGroups) AsyncAppend(c *logger.LogContent) {
@@ -81,26 +81,26 @@ func (tg *TaskGroups) AsyncAppend(c *logger.LogContent) {
 		return
 	}
 	tg.taskChan <- asyncTaskEvent{
-		taskName: c.TaskName.ToString(),
+		taskName: c.TaskName,
 		content:  c,
 	}
 }
 
 func (t *Task) Append(c *logger.LogContent) {
-	if _, ok := t.DBGroups[c.DBName.ToString()]; !ok {
-		t.DBGroups[c.DBName.ToString()] = &DB{
-			DBName:     c.DBName.ToString(),
+	if _, ok := t.DBGroups[c.DBName]; !ok {
+		t.DBGroups[c.DBName] = &DB{
+			DBName:     c.DBName,
 			InspGroups: make(map[string]*Inspect),
 		}
 	}
-	db := t.DBGroups[c.DBName.ToString()]
-	if _, ok := db.InspGroups[c.InspName.ToString()]; !ok {
-		db.InspGroups[c.InspName.ToString()] = &Inspect{
-			InspName: c.InspName.ToString(),
+	db := t.DBGroups[c.DBName]
+	if _, ok := db.InspGroups[c.InspName]; !ok {
+		db.InspGroups[c.InspName] = &Inspect{
+			InspName: c.InspName,
 			Contents: []*Content{},
 		}
 	}
-	insp := db.InspGroups[c.InspName.ToString()]
+	insp := db.InspGroups[c.InspName]
 	insp.Contents = append(insp.Contents, convertToAIContent(c))
 }
 
@@ -108,6 +108,6 @@ func (t *Task) Append(c *logger.LogContent) {
 func convertToAIContent(content *logger.LogContent) *Content {
 	return &Content{
 		Timestamp: content.Timestamp,
-		Result:    content.ResultStr,
+		Result:    string(content.Result),
 	}
 }

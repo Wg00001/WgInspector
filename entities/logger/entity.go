@@ -2,7 +2,6 @@ package logger
 
 import (
 	"WgInspector/entities/config"
-	"WgInspector/entities/db"
 	"time"
 )
 
@@ -27,8 +26,8 @@ type LogContent struct {
 	TaskName  string
 	DBName    string
 	InspName  string
-	TaskID    string    //task批次编号
-	Result    db.Result `gorm:"type:jsonb"`
+	TaskID    string //task批次编号
+	Result    []byte `gorm:"type:jsonb"`
 }
 
 func (receiver LogContent) TableName() string {

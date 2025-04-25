@@ -16,18 +16,21 @@ import (
 //用户配置task时可以指定loggerId，没有指定则使用0号。
 
 type Logger interface {
-	Log(Content)
+	Log(LogContent)
 	GetID() config.Identity
 	Init(cfg config.LogConfig) (Logger, error)
-	ReadLog(config.LogFilter) ([]Content, error)
+	ReadLog(config.LogFilter) ([]LogContent, error)
 }
 
-type Content struct {
+type LogContent struct {
 	Timestamp time.Time
-	TaskName  config.Identity
-	DBName    config.Identity
-	InspName  config.Identity
-	TaskID    string //task批次编号
-	Result    db.Result
-	ResultStr string
+	TaskName  string
+	DBName    string
+	InspName  string
+	TaskID    string    //task批次编号
+	Result    db.Result `gorm:"type:jsonb"`
+}
+
+func (receiver LogContent) TableName() string {
+	return "inspect_log"
 }

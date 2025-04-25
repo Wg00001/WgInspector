@@ -20,7 +20,7 @@ type TaskGroups struct {
 
 type asyncTaskEvent struct {
 	taskName string
-	content  *logger.Content
+	content  *logger.LogContent
 }
 
 type Task struct {
@@ -28,7 +28,7 @@ type Task struct {
 	DBGroups map[string]*DB `json:"db_groups"`
 
 	sync.Mutex `json:"-"`
-	queue      chan *logger.Content `json:"-"` // 每个 Task 独立的消息队列
+	queue      chan *logger.LogContent `json:"-"` // 每个 Task 独立的消息队列
 }
 
 // 初始化 TaskGroups 时启动调度器
@@ -60,7 +60,7 @@ func (tg *TaskGroups) scheduler() {
 				task = &Task{
 					TaskName: event.taskName,
 					DBGroups: make(map[string]*DB),
-					queue:    make(chan *logger.Content, 100), // 每个 Task 独立队列
+					queue:    make(chan *logger.LogContent, 100), // 每个 Task 独立队列
 				}
 				tg.Tasks[event.taskName] = task
 				go task.processQueue() // 启动 Task 专属消费协程

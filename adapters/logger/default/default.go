@@ -21,7 +21,7 @@ func init() {
 type LogDefault struct {
 }
 
-func (d LogDefault) ReadLog(filter config.LogFilter) ([]logger.Content, error) {
+func (d LogDefault) ReadLog(filter config.LogFilter) ([]logger.LogContent, error) {
 	return nil, fmt.Errorf("default logger can't read, pease use other driver")
 }
 
@@ -33,7 +33,7 @@ func (d LogDefault) GetID() config.Identity {
 	return config.Identity{}
 }
 
-func (d LogDefault) Log(l logger.Content) {
+func (d LogDefault) Log(l logger.LogContent) {
 	//utils.PrintQuery(l, rows)
 	log.Println(l.Result)
 }

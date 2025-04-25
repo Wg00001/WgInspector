@@ -17,7 +17,7 @@ import (
  */
 
 // Format 分类格式化
-func Format(contents ...logger.Content) (*string, error) {
+func Format(contents ...logger.LogContent) (*string, error) {
 	taskGroups := NewTaskGroups(100)
 	for _, c := range contents {
 		taskGroups.SyncAppend(&c)
@@ -61,7 +61,7 @@ type Content struct {
 }
 
 // SyncAppend 将格式化的过程异步进行
-func (tg *TaskGroups) SyncAppend(c *logger.Content) {
+func (tg *TaskGroups) SyncAppend(c *logger.LogContent) {
 	tg.Lock()
 	defer tg.Unlock()
 
@@ -74,7 +74,7 @@ func (tg *TaskGroups) SyncAppend(c *logger.Content) {
 	tg.Tasks[c.TaskName.ToString()].Append(c)
 }
 
-func (tg *TaskGroups) AsyncAppend(c *logger.Content) {
+func (tg *TaskGroups) AsyncAppend(c *logger.LogContent) {
 	if !tg.isAsync {
 		tg.SyncAppend(c)
 		log.Println("AI send warring: This group has not turned on asynchronous and has automatically switched to synchronous execution")
@@ -86,7 +86,7 @@ func (tg *TaskGroups) AsyncAppend(c *logger.Content) {
 	}
 }
 
-func (t *Task) Append(c *logger.Content) {
+func (t *Task) Append(c *logger.LogContent) {
 	if _, ok := t.DBGroups[c.DBName.ToString()]; !ok {
 		t.DBGroups[c.DBName.ToString()] = &DB{
 			DBName:     c.DBName.ToString(),
@@ -105,7 +105,7 @@ func (t *Task) Append(c *logger.Content) {
 }
 
 // 辅助函数：转换单个 Content
-func convertToAIContent(content *logger.Content) *Content {
+func convertToAIContent(content *logger.LogContent) *Content {
 	return &Content{
 		Timestamp: content.Timestamp,
 		Result:    content.ResultStr,

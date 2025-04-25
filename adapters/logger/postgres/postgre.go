@@ -4,34 +4,25 @@ import (
 	"WgInspector/entities/config"
 	"WgInspector/entities/logger"
 	config2 "WgInspector/usecase/config"
-	"WgInspector/usecase/db"
 	logger2 "WgInspector/usecase/logger"
 	"WgInspector/utils"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
 	"log"
-	"strings"
-	"time"
 )
 
 /**
- * @description: TODO
+ * @description: PostgreSQL日志实现
  * @author Wg
  * @date 2025/1/19
  */
 
 func init() {
-	logger2.RegisterDriver("postgres", LogPostgre{})
+	logger2.RegisterDriver("postgres", LogPostgre2{})
 }
 
-type LogPostgre struct {
-	Config   config.LogConfig
-	LogDB    config.Identity
-	LogTable string
-}
-
+// LogPostgre2 使用GORM实现的日志器
 type LogPostgre2 struct {
 	config.LogConfig
 	conn      *gorm.DB
@@ -39,241 +30,109 @@ type LogPostgre2 struct {
 	TableName string `json:"table_name"`
 }
 
-var _ logger.Logger = (*LogPostgre)(nil)
-
-type LogContent struct {
-	ID          int       `gorm:"primaryKey;autoIncrement"`
-	Timestamp   time.Time `gorm:"type:timestamp"`
-	TaskName    string    `gorm:"type:text"`
-	TaskID      string    `gorm:"type:text"`
-	InspectName string    `gorm:"type:text"`
-	DBName      string    `gorm:"type:text"`
-	Result      []byte    `gorm:"type:jsonb"`
-}
-
 func (l LogPostgre2) Init(cfg config.LogConfig) (logger.Logger, error) {
-	var res LogPostgre2
-	err := json.Unmarshal(cfg.Option, &res)
+	var temp LogPostgre2
+	err := json.Unmarshal(cfg.Option, &temp)
 	if err != nil {
 		return nil, err
 	}
-	if res.DSN == "" {
-		res.DSN = config2.GetInitConfig().BaseDSN
+	if temp.DSN == "" {
+		temp.DSN = config2.GetInitConfig().BaseDSN
 	}
-	if res.TableName == "" {
-		res.TableName = "inspect_log"
+	if temp.TableName == "" {
+		temp.TableName = logger.LogContent{}.TableName()
 	}
-	gormDB, err := utils.ConnectGormDB(res.Driver, res.DSN)
+	gormDB, err := utils.ConnectGormDB(temp.Driver, temp.DSN)
 	if err != nil {
 		return nil, err
 	}
-	l.conn = gormDB
-	return l, nil
-}
 
-func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
-	var res LogPostgre
-	err := json.Unmarshal(cfg.Option, &res)
+	// 自动创建表
+	err = gormDB.AutoMigrate(&logger.LogContent{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to migrate table: %w", err)
 	}
-	if res.LogTable == "" {
-		res.LogTable = "inspect_log"
-	}
-	res.Config = cfg
-	return res, nil
+
+	temp.conn = l.conn.Table(temp.TableName)
+	temp.LogConfig = cfg
+	return temp, nil
 }
 
-func (l LogPostgre) GetID() config.Identity {
-	return l.Config.Identity
+func (l LogPostgre2) GetID() config.Identity {
+	return l.LogConfig.Identity
 }
 
-func (l LogPostgre) Log(res logger.Content) {
-	// 获取数据库连接
-	logDB := db.Get(l.LogDB)
-	if logDB.Err != nil {
-		log.Printf("Failed to get database connection: %v", logDB.Err)
+func (l LogPostgre2) Log(res logger.LogContent) {
+	// 确认连接和表名
+	if l.conn == nil {
+		log.Printf("Database connection not initialized")
 		return
 	}
 
-	if l.LogTable == "" || l.LogTable == "inspect_log" {
-		l.LogTable = "inspect_log"
-		// 检查表是否存在
-		exists, err := checkTableExists(logDB.DB, l.LogTable)
-		if err != nil {
-			log.Printf("Failed to check table existence: %v", err)
-			return
-		}
+	// 插入记录
+	result := l.conn.Create(&res)
+	if result.Error != nil {
+		log.Printf("Failed to insert log data: %v", result.Error)
+	}
 
-		// 如果表不存在，则创建表
-		if !exists {
-			err = createTable(logDB.DB, l.LogTable)
-			if err != nil {
-				log.Printf("Failed to create table: %v", err)
-				return
-			}
-		}
-	}
-	resultContent, err := json.Marshal(res.Result)
-	if err != nil {
-		log.Printf("log err: json marshal fail - %v", res.Result)
-		resultContent = []byte(err.Error())
-	}
-	// 构建插入 SQL 语句
-	insertQuery := fmt.Sprintf(`
-        INSERT INTO %s (timestamp, task_name, task_id, inspect_name, db_name, result)
-        VALUES ($1, $2, $3, $4, $5, $6)
-    `, l.LogTable)
-
-	// 执行插入操作
-	_, err = logDB.DB.Exec(insertQuery, res.Timestamp, res.TaskName, res.TaskID, res.InspName, res.DBName, resultContent)
-	if err != nil {
-		log.Printf("Failed to insert log data: %v", err)
-	}
 }
 
-// checkTableExists 检查指定表是否存在
-func checkTableExists(db *sql.DB, tableName string) (bool, error) {
-	var exists bool
-	query := `SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE  table_schema = 'public'
-        AND    table_name   = $1
-    )`
-	err := db.QueryRow(query, tableName).Scan(&exists)
-	return exists, err
-}
-
-// createTable 创建指定表
-func createTable(db *sql.DB, tableName string) error {
-	createQuery := fmt.Sprintf(`
-        CREATE TABLE %s (
-            id SERIAL PRIMARY KEY,
-            timestamp TIMESTAMP,
-            task_name TEXT,
-            task_id TEXT,
-            inspect_name TEXT,
-            db_name TEXT,
-            result JSONB
-        )
-    `, tableName)
-	_, err := db.Exec(createQuery)
-	return err
-}
-
-func (l LogPostgre) ReadLog(filter config.LogFilter) ([]logger.Content, error) {
-	// 获取数据库连接
-	logDB := db.Get(l.LogDB)
-	if logDB == nil {
-		return nil, fmt.Errorf("database connection not found: %s", l.LogDB)
+func (l LogPostgre2) ReadLog(filter config.LogFilter) ([]logger.LogContent, error) {
+	// 检查连接
+	if l.conn == nil {
+		return nil, fmt.Errorf("database connection not initialized")
 	}
-
-	// 构建动态 WHERE 子句和参数
-	var whereClauses []string
-	var args []interface{}
-	argIdx := 1 // PostgreSQL 参数从 $1 开始
-
-	// 处理时间范围
+	query := l.conn
+	// 应用过滤条件
 	if !filter.StartTime.IsZero() && !filter.EndTime.IsZero() {
-		whereClauses = append(whereClauses, fmt.Sprintf("timestamp BETWEEN $%d AND $%d", argIdx, argIdx+1))
-		args = append(args, filter.StartTime, filter.EndTime)
-		argIdx += 2
+		query = query.Where("timestamp BETWEEN ? AND ?", filter.StartTime, filter.EndTime)
 	} else if !filter.StartTime.IsZero() {
-		whereClauses = append(whereClauses, fmt.Sprintf("timestamp >= $%d", argIdx))
-		args = append(args, filter.StartTime)
-		argIdx++
+		query = query.Where("timestamp >= ?", filter.StartTime)
 	} else if !filter.EndTime.IsZero() {
-		whereClauses = append(whereClauses, fmt.Sprintf("timestamp <= $%d", argIdx))
-		args = append(args, filter.EndTime)
-		argIdx++
+		query = query.Where("timestamp <= ?", filter.EndTime)
 	}
 
-	// 处理 TaskNames 过滤
+	// TaskNames 过滤
 	if len(filter.TaskNames) > 0 {
-		placeholders := make([]string, len(filter.TaskNames))
-		for i := range filter.TaskNames {
-			placeholders[i] = fmt.Sprintf("$%d", argIdx+i)
+		taskNames := make([]string, 0, len(filter.TaskNames))
+		for _, tn := range filter.TaskNames {
+			taskNames = append(taskNames, tn.Name)
 		}
-		whereClauses = append(whereClauses, fmt.Sprintf("task_name IN (%s)", strings.Join(placeholders, ",")))
-		args = append(args, interfaceSlice(filter.TaskNames)...)
-		argIdx += len(filter.TaskNames)
+		query = query.Where("task_name IN ?", taskNames)
 	}
 
-	// 处理 DBNames 过滤
+	// DBIDs 过滤
 	if len(filter.DBIDs) > 0 {
-		placeholders := make([]string, len(filter.DBIDs))
-		for i := range filter.DBIDs {
-			placeholders[i] = fmt.Sprintf("$%d", argIdx+i)
+		dbNames := make([]string, 0, len(filter.DBIDs))
+		for _, db := range filter.DBIDs {
+			dbNames = append(dbNames, db.Name)
 		}
-		whereClauses = append(whereClauses, fmt.Sprintf("db_name IN (%s)", strings.Join(placeholders, ",")))
-		args = append(args, interfaceSlice(filter.DBIDs)...)
-		argIdx += len(filter.DBIDs)
+		query = query.Where("db_name IN ?", dbNames)
 	}
 
-	// 处理 TaskIDs 过滤
+	// TaskIDs 过滤
 	if len(filter.TaskIDs) > 0 {
-		placeholders := make([]string, len(filter.TaskIDs))
-		for i := range filter.TaskIDs {
-			placeholders[i] = fmt.Sprintf("$%d", argIdx+i)
+		taskIDs := make([]string, 0, len(filter.TaskIDs))
+		for _, tid := range filter.TaskIDs {
+			taskIDs = append(taskIDs, tid.Name)
 		}
-		whereClauses = append(whereClauses, fmt.Sprintf("task_id IN (%s)", strings.Join(placeholders, ",")))
-		args = append(args, interfaceSlice(filter.TaskIDs)...)
-		argIdx += len(filter.TaskIDs)
+		query = query.Where("task_id IN ?", taskIDs)
 	}
 
-	// 构建完整 SQL
-	query := `
-        SELECT 
-            id,
-            COALESCE(timestamp, '1970-01-01'::timestamp),
-            COALESCE(task_name, ''),
-            COALESCE(task_id, ''),
-            COALESCE(inspect_name, ''),
-            COALESCE(db_name, ''),
-            COALESCE(result::text, '{}')
-        FROM public.inspect_log
-    `
-	if len(whereClauses) > 0 {
-		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	// InspNames 过滤
+	if len(filter.InspNames) > 0 {
+		inspNames := make([]string, 0, len(filter.InspNames))
+		for _, in := range filter.InspNames {
+			inspNames = append(inspNames, in.Name)
+		}
+		query = query.Where("inspect_name IN ?", inspNames)
 	}
 
 	// 执行查询
-	rows, err := logDB.Query(query, args...)
-	if err != nil {
+	var logRecords []logger.LogContent
+	if err := query.Find(&logRecords).Error; err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
-	defer rows.Close()
-	var id int
-	// 解析结果
-	var contents []logger.Content
-	for rows.Next() {
-		var content logger.Content
-		if err := rows.Scan(
-			&id,
-			&content.Timestamp,
-			&content.TaskName,
-			&content.TaskID,
-			&content.InspName,
-			&content.DBName,
-			&content.ResultStr,
-		); err != nil {
-			return nil, fmt.Errorf("scan failed: %w", err)
-		}
-		contents = append(contents, content)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
-	}
-
-	return contents, nil
-}
-
-// 辅助函数：将任意切片转为 []interface{}
-func interfaceSlice[T any](s []T) []interface{} {
-	rs := make([]interface{}, len(s))
-	for i, v := range s {
-		rs[i] = v
-	}
-	return rs
+	return logRecords, nil
 }

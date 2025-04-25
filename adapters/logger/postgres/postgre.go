@@ -6,7 +6,6 @@ import (
 	config2 "WgInspector/usecase/config"
 	logger2 "WgInspector/usecase/logger"
 	"WgInspector/utils"
-	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
 )
@@ -31,7 +30,7 @@ type LogPostgre struct {
 
 func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
 	var temp LogPostgre
-	err := json.Unmarshal(cfg.Option, &temp)
+	err := cfg.Option.Unmarshall(&temp)
 	if err != nil {
 		return nil, err
 	}

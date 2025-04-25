@@ -2,7 +2,6 @@ package config
 
 import (
 	"WgInspector/utils"
-	"encoding/json"
 	"time"
 )
 
@@ -44,13 +43,13 @@ type DBConfig struct {
 type LogConfig struct {
 	Identity
 	Driver string
-	Option json.RawMessage `gorm:"type:jsonb"`
+	Option utils.Option `gorm:"type:jsonb"`
 }
 
 type AlertConfig struct {
 	Identity
 	Driver string
-	Option json.RawMessage `gorm:"type:jsonb"`
+	Option utils.Option `gorm:"type:jsonb"`
 }
 
 // ---task(任务)相关配置

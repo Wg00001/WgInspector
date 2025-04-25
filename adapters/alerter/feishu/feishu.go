@@ -27,7 +27,7 @@ type AlerterFeishu struct {
 }
 
 func (a AlerterFeishu) Init(config config.AlertConfig) (alerter.Alerter, error) {
-	err := json.Unmarshal(config.Option, &a)
+	err := config.Option.Unmarshall(&a)
 	if err != nil {
 		return nil, err
 	}

@@ -36,3 +36,8 @@ func (o Option) GetOrDefault(key, def string) string {
 	}
 	return res
 }
+
+// todo: test copy
+func (o Option) Unmarshall(v any) error {
+	return DeepCopy(v, o)
+}

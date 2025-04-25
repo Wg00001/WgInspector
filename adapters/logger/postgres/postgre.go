@@ -3,8 +3,10 @@ package postgres
 import (
 	"WgInspector/entities/config"
 	"WgInspector/entities/logger"
+	config2 "WgInspector/usecase/config"
 	"WgInspector/usecase/db"
 	logger2 "WgInspector/usecase/logger"
+	"WgInspector/utils"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -31,9 +33,10 @@ type LogPostgre struct {
 }
 
 type LogPostgre2 struct {
-	Config    config.LogConfig
+	config.LogConfig
 	conn      *gorm.DB
-	tableName string
+	DSN       string `json:"dsn"`
+	TableName string `json:"table_name"`
 }
 
 var _ logger.Logger = (*LogPostgre)(nil)
@@ -46,6 +49,26 @@ type LogContent struct {
 	InspectName string    `gorm:"type:text"`
 	DBName      string    `gorm:"type:text"`
 	Result      []byte    `gorm:"type:jsonb"`
+}
+
+func (l LogPostgre2) Init(cfg config.LogConfig) (logger.Logger, error) {
+	var res LogPostgre2
+	err := json.Unmarshal(cfg.Option, &res)
+	if err != nil {
+		return nil, err
+	}
+	if res.DSN == "" {
+		res.DSN = config2.GetInitConfig().BaseDSN
+	}
+	if res.TableName == "" {
+		res.TableName = "inspect_log"
+	}
+	gormDB, err := utils.ConnectGormDB(res.Driver, res.DSN)
+	if err != nil {
+		return nil, err
+	}
+	l.conn = gormDB
+	return l, nil
 }
 
 func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {

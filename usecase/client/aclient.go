@@ -2,10 +2,7 @@ package client
 
 import (
 	"WgInspector/entities/client"
-	config2 "WgInspector/entities/config"
-	"WgInspector/usecase/config"
 	"context"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"sync"
@@ -48,43 +45,6 @@ func Register(client client.Client) error {
 
 func CallBack(configType string, data any, omit *websocket.Conn) error {
 	return cli.UpdateCallback(context.WithValue(context.Background(), "exclude", omit), configType, data)
-}
-
-func GetMetaItem[T config2.Id](data T) any {
-	config.RLock()
-	defer config.RUnlock()
-	switch any(data).(type) {
-	case config2.DBConfig:
-		return sliceCopy(config.Meta.DBs)
-	case config2.LogConfig:
-		return sliceCopy(config.Meta.Logs)
-	case config2.AlertConfig:
-		return sliceCopy(config.Meta.Alerts)
-	case config2.TaskConfig:
-		return sliceCopy(config.Meta.Tasks)
-	case config2.AgentConfig:
-		return config.Meta.Agents
-	case config2.AgentTaskConfig:
-		return sliceCopy(config.Meta.AgentTasks)
-	case config2.KnowledgeBaseConfig:
-		return sliceCopy(config.Meta.KBases)
-	case config2.InspTree:
-		return config.Meta.Insp
-	default:
-		return fmt.Errorf("unknown config type: %T", data)
-	}
-}
-
-func GetConfigMeta() config2.MetaConfig {
-	config.RLock()
-	defer config.RUnlock()
-	return config.Meta
-}
-
-func sliceCopy[T any](arr []T) []T {
-	res := make([]T, len(arr))
-	copy(res, arr)
-	return res
 }
 
 func Notice(content client.NoticeContent) error {

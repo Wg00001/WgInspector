@@ -13,6 +13,11 @@ import (
  * @date 2025/3/4
  */
 
+var (
+	reader         config.Reader
+	readerDriverMu sync.RWMutex
+)
+
 func InitReader(db *gorm.DB) error {
 	r, err := reader.NewReader(db)
 	if err != nil {
@@ -29,11 +34,6 @@ func UseDriver(r config.Reader) {
 	defer readerDriverMu.Unlock()
 	reader = r
 }
-
-var (
-	reader         config.Reader
-	readerDriverMu sync.RWMutex
-)
 
 func LoadConfig() error {
 	meta, err := reader.ReadConfig()

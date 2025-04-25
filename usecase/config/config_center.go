@@ -2,6 +2,7 @@ package config
 
 import (
 	"WgInspector/entities/config"
+	"WgInspector/utils"
 	"fmt"
 	"sync"
 )
@@ -18,6 +19,8 @@ var (
 	index    = make(map[Key]*config.Id)
 	mu       sync.RWMutex
 	appendMU sync.Mutex
+
+	globalInitConfig config.InitConfig
 )
 
 type Key struct {
@@ -43,6 +46,48 @@ func GetAllInsp() []*config.InspNode {
 	mu.RLock()
 	defer mu.RUnlock()
 	return Meta.Insp.AllInsp
+}
+
+func SetInitConfig(initConfig config.InitConfig) {
+	globalInitConfig = initConfig
+}
+
+func GetInitConfig() config.InitConfig {
+	return globalInitConfig
+}
+
+func GetMetaItem[T config.Id](...T) ([]T, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	var t T
+	switch any(t).(type) {
+	case config.DBConfig:
+		return sliceCopy(Meta.DBs).([]T), nil
+	case config.LogConfig:
+		return sliceCopy(Meta.Logs).([]T), nil
+	case config.AlertConfig:
+		return sliceCopy(Meta.Alerts).([]T), nil
+	case config.TaskConfig:
+		return sliceCopy(Meta.Tasks).([]T), nil
+	case config.AgentConfig:
+		return sliceCopy(Meta.Agents).([]T), nil
+	case config.AgentTaskConfig:
+		return sliceCopy(Meta.AgentTasks).([]T), nil
+	case config.KnowledgeBaseConfig:
+		return sliceCopy(Meta.KBases).([]T), nil
+	case config.InspNode:
+		return sliceCopy(Meta.InspNodes).([]T), nil
+	default:
+		return nil, fmt.Errorf("unknown config type: %T", t)
+	}
+}
+
+func GetConfigMeta() config.MetaConfig {
+	mu.RLock()
+	defer mu.RUnlock()
+	var res config.MetaConfig
+	utils.DeepCopy(res, Meta)
+	return res
 }
 
 func SetConfigMeta(c config.MetaConfig) error {
@@ -166,4 +211,10 @@ func syncWithDB(configType string) error {
 		return fmt.Errorf("unsupported config type: %s", configType)
 	}
 	return nil
+}
+
+func sliceCopy[T config.Id](arr []T) any {
+	res := make([]T, len(arr))
+	copy(res, arr)
+	return res
 }

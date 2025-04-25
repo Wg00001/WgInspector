@@ -19,6 +19,6 @@ func Run(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		client.Close()
-		cron.Exit()
+		cron.Stop()
 	}
 }

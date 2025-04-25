@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/wg00001/wgo-sdk/wg"
 	"log"
 	"reflect"
 	"sync"
@@ -24,6 +25,7 @@ import (
 
 const (
 	clientActionGet        = "config_get"
+	clientActionGetID      = "config_get_id"
 	clientActionUpdate     = "config_update"
 	clientActionDelete     = "config_delete"
 	clientActionCreate     = "config_create"
@@ -89,7 +91,7 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 			continue
 		}
 
-		handleAndResp := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
+		handleWithAuth := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
 			if user.Level < authLevel {
 				return response(conn, msg.MsgMeta, fmt.Errorf("no permission"))
 			}
@@ -100,17 +102,19 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 		case clientActionGet:
 			if msg.ConfigType == "Meta" || msg.ConfigType == "" {
 				config2.RLock()
-				logErr(clientActionGet, response(conn, msg.MsgMeta, client2.GetConfigMeta()))
+				logErr(clientActionGet, response(conn, msg.MsgMeta, config2.GetConfigMeta()))
 				config2.RUnlock()
 			} else {
-				logErr(clientActionGet, handleAndResp(getHandler, response, 0))
+				logErr(clientActionGet, handleWithAuth(getHandler, response, 0))
 			}
+		case clientActionGetID:
+			logErr(clientActionGetID, handleWithAuth(getIdHandler, response, 0))
 		case clientActionUpdate:
-			logErr(clientActionUpdate, handleAndResp(updateHandler, responseWithCallback, 1))
+			logErr(clientActionUpdate, handleWithAuth(updateHandler, responseWithCallback, 1))
 		case clientActionDelete:
-			logErr(clientActionDelete, handleAndResp(deleteHandler, responseWithCallback, 1))
+			logErr(clientActionDelete, handleWithAuth(deleteHandler, responseWithCallback, 1))
 		case clientActionCreate:
-			logErr(clientActionCreate, handleAndResp(createHandler, responseWithCallback, 1))
+			logErr(clientActionCreate, handleWithAuth(createHandler, responseWithCallback, 1))
 		case clientActionChangePass:
 			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
 		case clientNoticeConfirm:
@@ -208,7 +212,21 @@ func parseJson[T config.Id](configData json.RawMessage) T {
 }
 
 func getHandler(configType string, arg config.Id) any {
-	return client2.GetMetaItem(arg)
+	return getMetaItem(arg)
+}
+
+func getIdHandler(configType string, arg config.Id) any {
+	res := getMetaItem(arg)
+	switch t := res.(type) {
+	case error:
+		return t
+	case []config.Id:
+		return wg.SliceToSlice(t, func(item config.Id) config.Identity {
+			return item.GetIdentity()
+		})
+	default:
+		return res
+	}
 }
 
 func updateHandler(configType string, arg config.Id) any {
@@ -219,7 +237,7 @@ func updateHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return client2.GetMetaItem(arg)
+	return getMetaItem(arg)
 }
 
 func deleteHandler(configType string, arg config.Id) any {
@@ -230,7 +248,7 @@ func deleteHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return client2.GetMetaItem(arg)
+	return getMetaItem(arg)
 }
 
 func createHandler(configType string, arg config.Id) any {
@@ -241,8 +259,7 @@ func createHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	m := client2.GetMetaItem(arg)
-	return m
+	return getMetaItem(arg)
 }
 
 func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg RequestMsg) error {
@@ -364,4 +381,12 @@ func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
 		return err
 	}
 	return response(conn, msg.MsgMeta, "success")
+}
+
+func getMetaItem[T config.Id](data T) any {
+	res, err := config2.GetMetaItem(data)
+	if err != nil {
+		return err
+	}
+	return res
 }

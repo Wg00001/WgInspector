@@ -48,7 +48,7 @@ func Start() {
 	log.Println("cron: start...")
 }
 
-func Exit() {
+func Stop() {
 	mu.Lock()
 	defer mu.Unlock()
 	globalCron.Exit()

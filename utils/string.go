@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -32,4 +35,22 @@ func ToSnakeCase(s string) string {
 	// 合并连续下划线并去除首尾
 	str := strings.ReplaceAll(string(result), "__", "_")
 	return strings.Trim(str, "_")
+}
+
+func DeepCopy(dst interface{}, src interface{}) error {
+	if dst == nil {
+		return errors.New("dst cannot be nil")
+	}
+	if src == nil {
+		return errors.New("src cannot be nil")
+	}
+	bytes, err := json.Marshal(src)
+	if err != nil {
+		return fmt.Errorf("unable to marshal src: %w", err)
+	}
+	err = json.Unmarshal(bytes, dst)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal into dst: %w", err)
+	}
+	return nil
 }

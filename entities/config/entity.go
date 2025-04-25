@@ -31,7 +31,7 @@ type MetaConfig struct {
 }
 
 type Identity struct {
-	ID   int    `gorm:"primaryKey;autoIncrement;type:bigserial" json:"ID"`
+	ID   int64  `gorm:"primaryKey;autoIncrement;type:bigserial" json:"ID"`
 	Name string `json:"Name"`
 }
 

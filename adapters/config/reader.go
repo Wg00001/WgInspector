@@ -105,7 +105,7 @@ func (c ConfigReaderPostgre) ReadConfig(configTypes ...string) (config.MetaConfi
 }
 
 // SaveConfig 创建或更新
-func (c ConfigReaderPostgre) SaveConfig(data config.Id) (int, error) {
+func (c ConfigReaderPostgre) SaveConfig(data config.Id) (int64, error) {
 	switch v := data.(type) {
 	case config.DBConfig:
 		res, err := save[config.DBConfig](c.DB, v)

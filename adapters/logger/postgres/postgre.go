@@ -8,8 +8,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"gorm.io/gorm"
 	"log"
 	"strings"
+	"time"
 )
 
 /**
@@ -28,7 +30,23 @@ type LogPostgre struct {
 	LogTable string
 }
 
+type LogPostgre2 struct {
+	Config    config.LogConfig
+	conn      *gorm.DB
+	tableName string
+}
+
 var _ logger.Logger = (*LogPostgre)(nil)
+
+type LogContent struct {
+	ID          int       `gorm:"primaryKey;autoIncrement"`
+	Timestamp   time.Time `gorm:"type:timestamp"`
+	TaskName    string    `gorm:"type:text"`
+	TaskID      string    `gorm:"type:text"`
+	InspectName string    `gorm:"type:text"`
+	DBName      string    `gorm:"type:text"`
+	Result      []byte    `gorm:"type:jsonb"`
+}
 
 func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
 	var res LogPostgre
@@ -48,7 +66,6 @@ func (l LogPostgre) GetID() config.Identity {
 }
 
 func (l LogPostgre) Log(res logger.Content) {
-	db.Get(l.LogDB)
 	// 获取数据库连接
 	logDB := db.Get(l.LogDB)
 	if logDB.Err != nil {

@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/config"
 	config2 "WgInspector/usecase/config"
 	"fmt"
+	"github.com/wg00001/wgo-sdk/wg"
 )
 
 /**
@@ -28,7 +29,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	//}
 	res = &taskPlan{
 		targetDBs: make([]*config.DBConfig, 0, len(taskCfg.TargetDB)),
-		inspNodes: []*config.InspNode{},
+		inspNodes: []*config.InspConfig{},
 	}
 	for _, val := range taskCfg.TargetDB {
 		dbcfg, err := config2.GetWithType[config.DBConfig](config2.Key{
@@ -43,7 +44,9 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 
 	//是否全选 (全部insp)
 	if taskCfg.AllInspector {
-		res.inspNodes = config2.GetAllInsp()
+		res.inspNodes = wg.SliceToSlice(config2.GetAllInsp(), func(item config.InspConfig) *config.InspConfig {
+			return &item
+		})
 	}
 	//添加todo列表的insp
 	for _, val := range taskCfg.Todo {
@@ -51,14 +54,14 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 		if temp == nil {
 			continue
 		}
-		res.inspNodes = append(res.inspNodes, temp)
+		res.inspNodes = append(res.inspNodes, temp...)
 	}
 	//去掉not to do的insp (使用hash连接)
 	notToDo := make(map[config.Identity]bool, len(taskCfg.NotTodo))
 	for _, val := range taskCfg.NotTodo {
 		notToDo[val] = true
 	}
-	newArr := make([]*config.InspNode, 0, len(res.inspNodes))
+	newArr := make([]*config.InspConfig, 0, len(res.inspNodes))
 	for _, val := range res.inspNodes {
 		if !notToDo[val.Identity] {
 			newArr = append(newArr, val)

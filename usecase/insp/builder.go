@@ -11,12 +11,12 @@ import (
  */
 
 type NodeBuilder struct {
-	config.InspNode
+	config.InspConfig
 	error
 }
 
-func (n NodeBuilder) Build() (config.InspNode, error) {
-	return n.InspNode, n.error
+func (n NodeBuilder) Build() (config.InspConfig, error) {
+	return n.InspConfig, n.error
 }
 
 func (n NodeBuilder) WithName(name config.Identity) NodeBuilder {

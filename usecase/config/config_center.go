@@ -15,7 +15,7 @@ import (
 
 var (
 	// Meta : 对pgsql中数据的缓存
-	Meta     = config.MetaConfig{Insp: config.NewTree()}
+	Meta     = config.MetaConfig{}
 	index    = make(map[Key]*config.Id)
 	mu       sync.RWMutex
 	appendMU sync.Mutex
@@ -36,16 +36,23 @@ func RUnlock() {
 	mu.RUnlock()
 }
 
-func GetInsp(path config.Identity) *config.InspNode {
+//func GetInsp(path config.Identity) *config.InspConfig {
+//	mu.RLock()
+//	defer mu.RUnlock()
+//	return Meta.InspIndex.GetNode(path.ToString())
+//}
+
+func GetAllInsp() []config.InspConfig {
 	mu.RLock()
 	defer mu.RUnlock()
-	return Meta.Insp.GetNode(path.ToString())
+	return Meta.InspNodes
 }
 
-func GetAllInsp() []*config.InspNode {
-	mu.RLock()
-	defer mu.RUnlock()
-	return Meta.Insp.AllInsp
+func GetInsp(id config.Identity, ids ...config.Identity) []*config.InspConfig {
+	if Meta.InspIndex == nil {
+		Meta.InspIndex = config.NewInspIndex(Meta.InspNodes)
+	}
+	return Meta.InspIndex.Get(id, ids...)
 }
 
 func SetInitConfig(initConfig config.InitConfig) {
@@ -56,6 +63,7 @@ func GetInitConfig() config.InitConfig {
 	return globalInitConfig
 }
 
+// 可选的入参T，仅用于指定T的类型
 func GetMetaItem[T config.Id](...T) ([]T, error) {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -75,7 +83,7 @@ func GetMetaItem[T config.Id](...T) ([]T, error) {
 		return sliceCopy(Meta.AgentTasks).([]T), nil
 	case config.KnowledgeBaseConfig:
 		return sliceCopy(Meta.KBases).([]T), nil
-	case config.InspNode:
+	case config.InspConfig:
 		return sliceCopy(Meta.InspNodes).([]T), nil
 	default:
 		return nil, fmt.Errorf("unknown config type: %T", t)
@@ -160,7 +168,6 @@ func Save(key Key, val config.Id) (err error) {
 	//if !ok {
 	//	AppendIndex(key.ConfigType, val)
 	//} else {
-	//	//todo： test deepcopy
 	//	return util.DeepCopy(index[key], &val)
 	//}
 	return syncWithDB(key.ConfigType)

@@ -19,6 +19,6 @@ type inspAlertKey struct {
 	SQL      string
 }
 
-func SendInspAlert(inode config.InspNode, content alerter.Content) {
+func SendInspAlert(inode config.InspConfig, content alerter.Content) {
 
 }

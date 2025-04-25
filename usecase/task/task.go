@@ -28,7 +28,7 @@ type Task struct {
 
 type taskPlan struct {
 	targetDBs []*config.DBConfig
-	inspNodes []*config.InspNode
+	inspNodes []*config.InspConfig
 }
 
 var _ task.Task = (*Task)(nil)

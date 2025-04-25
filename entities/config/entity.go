@@ -25,13 +25,13 @@ type MetaConfig struct {
 	Agents     []AgentConfig
 	AgentTasks []AgentTaskConfig
 	KBases     []KnowledgeBaseConfig
-	InspNodes  []InspNode
-	Insp       *InspTree
+	InspNodes  []InspConfig
+	InspIndex  InspIndex
 }
 
 type Identity struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement;type:bigserial" json:"ID"`
-	Name string `json:"Name"`
+	Name string `gorm:"unique;notNull" json:"Name"`
 }
 
 type DBConfig struct {
@@ -61,10 +61,10 @@ type TaskConfig struct {
 
 	LogID    Identity   `gorm:"type:jsonb"`
 	AlertID  Identity   `gorm:"type:jsonb"`
-	TargetDB []Identity `gorm:"type:jsonb"`
+	TargetDB []Identity `gorm:"type:jsonb[]"`
 
-	Todo    []Identity `gorm:"type:jsonb"`
-	NotTodo []Identity `gorm:"type:jsonb"`
+	Todo    []Identity `gorm:"type:jsonb[]"`
+	NotTodo []Identity `gorm:"type:jsonb[]"`
 }
 
 type Cron struct {
@@ -96,7 +96,7 @@ type AgentTaskConfig struct {
 	AlertID       Identity   `gorm:"type:jsonb"`
 	AgentID       Identity   `gorm:"type:jsonb"`
 	KbaseAgentID  Identity   `gorm:"type:jsonb"`
-	KBase         []Identity `gorm:"type:jsonb"`
+	KBase         []Identity `gorm:"type:jsonb[]"`
 	KBaseResults  int
 	KBaseMaxLen   int
 	SystemMessage string

@@ -23,7 +23,7 @@ const (
 
 type ConfigType interface {
 	DBConfig | TaskConfig | LogConfig | AlertConfig |
-		AgentConfig | AgentTaskConfig | KnowledgeBaseConfig | InspNode
+		AgentConfig | AgentTaskConfig | KnowledgeBaseConfig | InspConfig
 }
 
 func Turn[T ConfigType](data Id) T {
@@ -46,7 +46,7 @@ func GetConfigTypeName(data any) (string, error) {
 		return TypeAgentTask, nil
 	case KnowledgeBaseConfig, *KnowledgeBaseConfig:
 		return TypeKBase, nil
-	case InspTree, *InspTree:
+	case InspIndex, *InspIndex:
 		return TypeInspector, nil
 	default:
 		return "", fmt.Errorf("unknown config type: %T", data)
@@ -81,6 +81,6 @@ func (k KnowledgeBaseConfig) TableName() string {
 	return TypeKBase
 }
 
-func (i InspNode) TableName() string {
+func (i InspConfig) TableName() string {
 	return TypeInspector
 }

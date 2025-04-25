@@ -36,7 +36,7 @@ func (ConfigReaderPostgre) NewReader(db *gorm.DB) (config.Reader, error) {
 		&config.TaskConfig{},
 		&config.AgentTaskConfig{},
 		&config.KnowledgeBaseConfig{},
-		&config.InspNode{},
+		&config.InspConfig{},
 	)
 	if err != nil {
 		return nil, err
@@ -128,8 +128,8 @@ func (c ConfigReaderPostgre) SaveConfig(data config.Id) (int64, error) {
 	case config.KnowledgeBaseConfig:
 		res, err := save[config.KnowledgeBaseConfig](c.DB, v)
 		return res.ID, err
-	case config.InspNode:
-		res, err := save[config.InspNode](c.DB, v)
+	case config.InspConfig:
+		res, err := save[config.InspConfig](c.DB, v)
 		return res.ID, err
 	default:
 		return 0, fmt.Errorf("unknown config type: %T", data)

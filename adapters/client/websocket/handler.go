@@ -37,6 +37,11 @@ const (
 	clientTaskDo           = "task_do"
 )
 
+type MsgMeta struct {
+	Action     string `json:"action"`
+	ConfigType string `json:"config_type,omitempty"`
+}
+
 // 请求过来的数据的格式
 type RequestMsg struct {
 	MsgMeta
@@ -52,11 +57,6 @@ type ResponseMsg struct {
 	Success    bool   `json:"success"`
 	Message    string `json:"message"`
 	ConfigData any    `json:"config_data"`
-}
-
-type MsgMeta struct {
-	Action     string `json:"action"`
-	ConfigType string `json:"config_type,omitempty"`
 }
 
 func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user client.User) {
@@ -166,7 +166,7 @@ func handler(
 	case config.TypeKBase:
 		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeKBase, parseJson[config.KnowledgeBaseConfig](req.ConfigData)))
 	case config.TypeInspector:
-		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeInspector, parseJson[config.InspNode](req.ConfigData)))
+		return responseFunc(conn, req.MsgMeta, handleFunc(config.TypeInspector, parseJson[config.InspConfig](req.ConfigData)))
 	default:
 		return fmt.Errorf("client - websocket: handle fail: type of configData not suppose: %s", req.ConfigType)
 	}

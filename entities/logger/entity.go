@@ -15,7 +15,7 @@ import (
 //用户配置task时可以指定loggerId，没有指定则使用0号。
 
 type Logger interface {
-	Log(LogContent)
+	Log(LogContent) error
 	GetID() config.Identity
 	Init(cfg config.LogConfig) (Logger, error)
 	ReadLog(config.LogFilter) ([]LogContent, error)

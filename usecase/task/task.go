@@ -11,7 +11,7 @@ import (
 	logger2 "WgInspector/usecase/logger"
 	"context"
 	"fmt"
-	"log"
+	"sync"
 	"time"
 )
 
@@ -33,8 +33,6 @@ type taskPlan struct {
 
 var _ task.Task = (*Task)(nil)
 
-// todo:性能优化
-
 func (t *Task) Do(ctx context.Context) error {
 	taskId := time.Now().Format("20060102_150405")
 	tp, err := newTaskPlan(t.Config)
@@ -42,58 +40,105 @@ func (t *Task) Do(ctx context.Context) error {
 		return err
 	}
 	fmt.Printf("task: start - %s\n", taskId)
-	for _, inspect := range tp.inspNodes {
-		for _, tdb := range tp.targetDBs {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-			}
 
+	// 使用带缓冲的错误通道，缓冲区大小根据实际可能的最大错误数调整
+	errChan := make(chan error, len(tp.inspNodes)*len(tp.targetDBs)*2)
+	var wg sync.WaitGroup
+
+	// 提取公共配置，避免在闭包中频繁访问 t.Config
+	taskName := t.Config.Identity
+	logID := t.Config.LogID
+	alertID := t.Config.AlertID
+
+	for _, inspect := range tp.inspNodes {
+		inspName := inspect.Identity // 提取检查名称
+
+		for _, tdb := range tp.targetDBs {
 			if tdb == nil {
 				continue
 			}
-			//执行SQL
-			query, err := db.Get(tdb.Identity).Query(inspect.SQL)
+
+			// 在每次迭代开始时检查上下文是否已取消
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
+			// 同步执行核心查询逻辑
+			dbInstance := db.Get(tdb.Identity)
+			query, err := dbInstance.Query(inspect.SQL)
 			if err != nil {
-				return err
+				return fmt.Errorf("query failed: %w", err)
 			}
 			result, err := db2.RowsToResult(query)
 			if err != nil {
-				return err
+				return fmt.Errorf("result conversion failed: %w", err)
 			}
 
-			//记录
-			logger2.
-				Get(t.Config.LogID).
-				Log(logger.LogContent{
-					Timestamp: time.Now(),
-					TaskName:  t.Config.Identity.Name,
-					TaskID:    taskId,
-					InspName:  inspect.Identity.Name,
-					DBName:    tdb.Identity.Name,
-					Result:    result.MarshallJSON(),
-				})
+			// 准备异步处理所需数据（避免在闭包中捕获循环变量）
+			dbName := tdb.Identity.Name
+			dbIdent := tdb.Identity // 假设这是需要传递的完整标识对象
 
-			//报警
-			err = alerter2.
-				GetAlert(t.Config.AlertID).
-				Send(alerter.Content{
-					TimeStamp: time.Now(),
-					TaskName:  t.Config.Identity,
-					TaskID:    taskId,
-					DBName:    tdb.Identity,
-					InspName:  inspect.Identity,
-					Result:    result,
-				})
-			//err = inspect.AlertFunc()
-			if err != nil {
-				return err
-			}
+			// 启动日志记录协程
+			wg.Add(1)
+			go func(content logger.LogContent) {
+				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						errChan <- fmt.Errorf("logging panic: %v", r)
+					}
+				}()
 
+				if err := logger2.Get(logID).Log(content); err != nil {
+					errChan <- fmt.Errorf("logging failed: %w", err)
+				}
+			}(logger.LogContent{
+				Timestamp: time.Now(),
+				TaskName:  taskName.Name,
+				TaskID:    taskId,
+				InspName:  inspName.Name,
+				DBName:    dbName,
+				Result:    result.MarshallJSON(),
+			})
+
+			// 启动警报发送协程
+			wg.Add(1)
+			go func(content alerter.Content) { // 假设具体类型
+				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						errChan <- fmt.Errorf("alerting panic: %v", r)
+					}
+				}()
+				if err := alerter2.GetAlert(alertID).Send(content); err != nil {
+					errChan <- fmt.Errorf("alert failed: %w", err)
+				}
+			}(alerter.Content{
+				TimeStamp: time.Now(),
+				TaskName:  taskName,
+				TaskID:    taskId,
+				DBName:    dbIdent,
+				InspName:  inspName,
+				Result:    result,
+			})
 		}
 	}
-	log.Printf("task finish: %s\n", t.Config.Identity)
+
+	// 错误处理
+	// 等待所有任务完成关闭通道
+	wg.Wait()
+	close(errChan)
+
+	var errStr string
+	// 处理剩余错误
+	for err := range errChan {
+		errStr += fmt.Sprintf("%v", err)
+	}
+	if errStr != "" {
+		return fmt.Errorf("Async operation error: \n%s", errStr)
+	}
+	fmt.Printf("task submitted: %s\n", t.Config.Identity.Name)
 	return nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
-	"log"
 )
 
 /**
@@ -19,19 +18,19 @@ import (
  */
 
 func init() {
-	logger2.RegisterDriver("postgres", LogPostgre2{})
+	logger2.RegisterDriver("postgres", LogPostgre{})
 }
 
-// LogPostgre2 使用GORM实现的日志器
-type LogPostgre2 struct {
+// LogPostgre 使用GORM实现的日志器
+type LogPostgre struct {
 	config.LogConfig
 	conn      *gorm.DB
 	DSN       string `json:"dsn"`
 	TableName string `json:"table_name"`
 }
 
-func (l LogPostgre2) Init(cfg config.LogConfig) (logger.Logger, error) {
-	var temp LogPostgre2
+func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
+	var temp LogPostgre
 	err := json.Unmarshal(cfg.Option, &temp)
 	if err != nil {
 		return nil, err
@@ -58,26 +57,26 @@ func (l LogPostgre2) Init(cfg config.LogConfig) (logger.Logger, error) {
 	return temp, nil
 }
 
-func (l LogPostgre2) GetID() config.Identity {
+func (l LogPostgre) GetID() config.Identity {
 	return l.LogConfig.Identity
 }
 
-func (l LogPostgre2) Log(res logger.LogContent) {
+func (l LogPostgre) Log(res logger.LogContent) error {
 	// 确认连接和表名
 	if l.conn == nil {
-		log.Printf("Database connection not initialized")
-		return
+		return fmt.Errorf("Database connection not initialized")
 	}
 
 	// 插入记录
 	result := l.conn.Create(&res)
 	if result.Error != nil {
-		log.Printf("Failed to insert log data: %v", result.Error)
+		return fmt.Errorf("Failed to insert log data: %v", result.Error)
 	}
 
+	return nil
 }
 
-func (l LogPostgre2) ReadLog(filter config.LogFilter) ([]logger.LogContent, error) {
+func (l LogPostgre) ReadLog(filter config.LogFilter) ([]logger.LogContent, error) {
 	// 检查连接
 	if l.conn == nil {
 		return nil, fmt.Errorf("database connection not initialized")

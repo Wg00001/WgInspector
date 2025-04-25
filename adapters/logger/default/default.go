@@ -33,9 +33,10 @@ func (d LogDefault) GetID() config.Identity {
 	return config.Identity{}
 }
 
-func (d LogDefault) Log(l logger.LogContent) {
+func (d LogDefault) Log(l logger.LogContent) error {
 	//utils.PrintQuery(l, rows)
 	log.Println(string(l.Result))
+	return nil
 }
 
 var _ logger.Logger = (*LogDefault)(nil)

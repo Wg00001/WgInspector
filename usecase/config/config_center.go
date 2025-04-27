@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/config"
 	"WgInspector/utils"
 	"fmt"
+	"github.com/wg00001/wgo-sdk/wg"
 	"sync"
 )
 
@@ -15,10 +16,11 @@ import (
 
 var (
 	// Meta : 对pgsql中数据的缓存
-	Meta     = config.MetaConfig{}
-	index    = make(map[Key]*config.Id)
-	mu       sync.RWMutex
-	appendMU sync.Mutex
+	Meta      = config.MetaConfig{}
+	index     = make(map[Key]*config.Id)
+	inspIndex *config.InspIndex
+	mu        sync.RWMutex
+	appendMU  sync.Mutex
 
 	globalInitConfig config.InitConfig
 )
@@ -36,12 +38,6 @@ func RUnlock() {
 	mu.RUnlock()
 }
 
-//func GetInsp(path config.Identity) *config.InspConfig {
-//	mu.RLock()
-//	defer mu.RUnlock()
-//	return Meta.InspIndex.GetNode(path.ToString())
-//}
-
 func GetAllInsp() []config.InspConfig {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -49,10 +45,9 @@ func GetAllInsp() []config.InspConfig {
 }
 
 func GetInsp(id config.Identity, ids ...config.Identity) []*config.InspConfig {
-	if Meta.InspIndex == nil {
-		Meta.InspIndex = config.NewInspIndex(Meta.InspNodes)
-	}
-	return Meta.InspIndex.Get(id, ids...)
+	mu.RLock()
+	defer mu.RUnlock()
+	return inspIndex.Get(id, ids...)
 }
 
 func SetInitConfig(initConfig config.InitConfig) {
@@ -64,7 +59,7 @@ func GetInitConfig() config.InitConfig {
 }
 
 // 可选的入参T，仅用于指定T的类型
-func GetMetaItem[T config.Id](...T) ([]T, error) {
+func GetMetaItemByObj[T config.Id](...T) ([]T, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	var t T
@@ -90,6 +85,72 @@ func GetMetaItem[T config.Id](...T) ([]T, error) {
 	}
 }
 
+func GetMetaItem(configType string) (any, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	switch configType {
+	case config.TypeDB:
+		return sliceCopy(Meta.DBs), nil
+	case config.TypeLog:
+		return sliceCopy(Meta.Logs), nil
+	case config.TypeAlert:
+		return sliceCopy(Meta.Alerts), nil
+	case config.TypeTask:
+		return sliceCopy(Meta.Tasks), nil
+	case config.TypeAgent:
+		return sliceCopy(Meta.Agents), nil
+	case config.TypeAgentTask:
+		return sliceCopy(Meta.AgentTasks), nil
+	case config.TypeKBase:
+		return sliceCopy(Meta.KBases), nil
+	case config.TypeInspector:
+		return sliceCopy(Meta.InspNodes), nil
+	default:
+		return nil, fmt.Errorf("config-center: get meta item fail, type: %s", configType)
+	}
+}
+
+func GetIdentityList(configType string) ([]config.Identity, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	switch configType {
+	case config.TypeDB:
+		return wg.SliceToSlice(Meta.DBs, func(item config.DBConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeLog:
+		return wg.SliceToSlice(Meta.Logs, func(item config.LogConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeAlert:
+		return wg.SliceToSlice(Meta.Alerts, func(item config.AlertConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeTask:
+		return wg.SliceToSlice(Meta.Tasks, func(item config.TaskConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeAgent:
+		return wg.SliceToSlice(Meta.Agents, func(item config.AgentConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeAgentTask:
+		return wg.SliceToSlice(Meta.AgentTasks, func(item config.AgentTaskConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeKBase:
+		return wg.SliceToSlice(Meta.KBases, func(item config.KnowledgeBaseConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	case config.TypeInspector:
+		return wg.SliceToSlice(Meta.InspNodes, func(item config.InspConfig) config.Identity {
+			return item.GetIdentity()
+		}), nil
+	default:
+		return nil, fmt.Errorf("config-center: get meta item fail, type: %s", configType)
+	}
+}
+
 func GetConfigMeta() config.MetaConfig {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -110,6 +171,7 @@ func SetConfigMeta(c config.MetaConfig) error {
 	AppendIndex(config.TypeAgentTask, c.AgentTasks...)
 	AppendIndex(config.TypeKBase, c.KBases...)
 	AppendIndex(config.TypeInspector, c.InspNodes...)
+	inspIndex = config.NewInspIndex(Meta.InspNodes)
 	return nil
 }
 

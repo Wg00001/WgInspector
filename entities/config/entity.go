@@ -26,13 +26,14 @@ type MetaConfig struct {
 	AgentTasks []AgentTaskConfig
 	KBases     []KnowledgeBaseConfig
 	InspNodes  []InspConfig
-	InspIndex  InspIndex
 }
 
 type Identity struct {
 	ID   int64  `gorm:"primaryKey;autoIncrement;type:bigserial" json:"ID"`
 	Name string `gorm:"unique;notNull" json:"Name"`
 }
+
+type IdKey Identity
 
 type DBConfig struct {
 	Identity
@@ -59,12 +60,12 @@ type TaskConfig struct {
 	Cron         Cron `gorm:"type:jsonb"`
 	AllInspector bool
 
-	LogID    Identity   `gorm:"type:jsonb"`
-	AlertID  Identity   `gorm:"type:jsonb"`
-	TargetDB []Identity `gorm:"type:jsonb[]"`
+	LogID    IdKey   `gorm:"type:jsonb"`
+	AlertID  IdKey   `gorm:"type:jsonb"`
+	TargetDB []IdKey `gorm:"type:jsonb[]"`
 
-	Todo    []Identity `gorm:"type:jsonb[]"`
-	NotTodo []Identity `gorm:"type:jsonb[]"`
+	Todo    []IdKey `gorm:"type:jsonb[]"`
+	NotTodo []IdKey `gorm:"type:jsonb[]"`
 }
 
 type Cron struct {
@@ -90,13 +91,13 @@ type AgentConfig struct {
 
 type AgentTaskConfig struct {
 	Identity
-	Cron          Cron       `gorm:"type:jsonb"`
-	LogFilter     LogFilter  `gorm:"type:jsonb"`
-	LogID         Identity   `gorm:"type:jsonb"`
-	AlertID       Identity   `gorm:"type:jsonb"`
-	AgentID       Identity   `gorm:"type:jsonb"`
-	KbaseAgentID  Identity   `gorm:"type:jsonb"`
-	KBase         []Identity `gorm:"type:jsonb[]"`
+	Cron          Cron      `gorm:"type:jsonb"`
+	LogFilter     LogFilter `gorm:"type:jsonb"`
+	LogID         IdKey     `gorm:"type:jsonb"`
+	AlertID       IdKey     `gorm:"type:jsonb"`
+	AgentID       IdKey     `gorm:"type:jsonb"`
+	KbaseAgentID  IdKey     `gorm:"type:jsonb"`
+	KBase         []IdKey   `gorm:"type:jsonb[]"`
 	KBaseResults  int
 	KBaseMaxLen   int
 	SystemMessage string
@@ -106,15 +107,15 @@ type LogFilter struct {
 	// 时间范围：Timestamp 需在 [StartTime, EndTime] 之间
 	StartTime time.Time
 	EndTime   time.Time
-	TaskNames []Identity // Id 匹配列表
-	DBIDs     []Identity // DBName 匹配列表
-	TaskIDs   []Identity // TaskID 匹配列表
-	InspNames []Identity // Insp匹配列表
+	TaskNames []IdKey // Id 匹配列表
+	DBIDs     []IdKey // DBName 匹配列表
+	TaskIDs   []IdKey // TaskID 匹配列表
+	InspNames []IdKey // Insp匹配列表
 }
 
 type KnowledgeBaseConfig struct {
 	Identity
 	Driver  string
-	AgentID Identity               `gorm:"type:jsonb"`
+	AgentID IdKey                  `gorm:"type:jsonb"`
 	Option  map[string]interface{} `gorm:"type:jsonb"`
 }

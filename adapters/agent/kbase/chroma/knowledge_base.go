@@ -71,7 +71,7 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 		//agentConfig := config2.GetAgentConfig()
 		agentConfig, _ := config2.GetWithType[config.AgentConfig](config2.Key{
 			ConfigType: config.TypeAgent,
-			Identity:   k.Config.AgentID,
+			Identity:   k.Config.AgentID.Identity(),
 		})
 		k.Efunc, err = openai.NewOpenAIEmbeddingFunction(
 			agentConfig.ApiKey,

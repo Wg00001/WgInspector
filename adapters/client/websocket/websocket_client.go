@@ -71,6 +71,7 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 
 	// 设置 HTTP 路由和处理函数
 	http.HandleFunc(c.parsedURL.Path, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("==当前连接池：连接数-%d,连接：%v\n", len(c.conns), c.conns)
 		// 直接升级连接为 WebSocket
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {

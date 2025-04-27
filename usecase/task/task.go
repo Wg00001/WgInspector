@@ -90,7 +90,7 @@ func (t *Task) Do(ctx context.Context) error {
 					}
 				}()
 
-				if err := logger2.Get(logID).Log(content); err != nil {
+				if err := logger2.Get(logID.Identity()).Log(content); err != nil {
 					errChan <- fmt.Errorf("logging failed: %w", err)
 				}
 			}(logger.LogContent{
@@ -111,7 +111,7 @@ func (t *Task) Do(ctx context.Context) error {
 						errChan <- fmt.Errorf("alerting panic: %v", r)
 					}
 				}()
-				if err := alerter2.GetAlert(alertID).Send(content); err != nil {
+				if err := alerter2.GetAlert(alertID.Identity()).Send(content); err != nil {
 					errChan <- fmt.Errorf("alert failed: %w", err)
 				}
 			}(alerter.Content{

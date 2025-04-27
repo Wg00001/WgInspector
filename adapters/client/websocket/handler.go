@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/wg00001/wgo-sdk/wg"
 	"log"
 	"reflect"
 	"sync"
@@ -102,7 +101,7 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 		case clientActionGet:
 			if msg.ConfigType == "Meta" || msg.ConfigType == "" {
 				config2.RLock()
-				logErr(clientActionGet, response(conn, msg.MsgMeta, config2.GetConfigMeta()))
+				logErr(clientActionGet, response(conn, msg.MsgMeta, config2.Meta))
 				config2.RUnlock()
 			} else {
 				logErr(clientActionGet, handleWithAuth(getHandler, response, 0))
@@ -204,6 +203,9 @@ func responseWithCallback(conn *websocket.Conn, msgMeta MsgMeta, obj any) error 
 
 func parseJson[T config.Id](configData json.RawMessage) T {
 	var res T
+	if len(configData) == 0 {
+		return res
+	}
 	err := json.Unmarshal(configData, &res)
 	if err != nil {
 		panic(fmt.Errorf("json parse fail: type %s, data: %v, err:%v", reflect.TypeOf(res), string(configData), err))
@@ -212,21 +214,19 @@ func parseJson[T config.Id](configData json.RawMessage) T {
 }
 
 func getHandler(configType string, arg config.Id) any {
-	return getMetaItem(arg)
+	item, err := config2.GetMetaItem(configType)
+	if err != nil {
+		return err
+	}
+	return item
 }
 
 func getIdHandler(configType string, arg config.Id) any {
-	res := getMetaItem(arg)
-	switch t := res.(type) {
-	case error:
-		return t
-	case []config.Id:
-		return wg.SliceToSlice(t, func(item config.Id) config.Identity {
-			return item.GetIdentity()
-		})
-	default:
-		return res
+	res, err := config2.GetIdentityList(configType)
+	if err != nil {
+		return err
 	}
+	return res
 }
 
 func updateHandler(configType string, arg config.Id) any {
@@ -384,7 +384,7 @@ func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
 }
 
 func getMetaItem[T config.Id](data T) any {
-	res, err := config2.GetMetaItem(data)
+	res, err := config2.GetMetaItemByObj(data)
 	if err != nil {
 		return err
 	}

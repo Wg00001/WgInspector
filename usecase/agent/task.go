@@ -37,7 +37,7 @@ var _ task.Task = (*AgentTask)(nil)
 func (t *AgentTask) Do(context.Context) error {
 
 	//1. 获取日志
-	contents, err := logger.Get(t.LogID).ReadLog(t.LogFilter)
+	contents, err := logger.Get(t.LogID.Identity()).ReadLog(t.LogFilter)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (t *AgentTask) Do(context.Context) error {
 	}
 
 	//5. 发送Ai获取结果
-	a, err := analyzer.Get(t.AgentID)
+	a, err := analyzer.Get(t.AgentID.Identity())
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (t *AgentTask) Do(context.Context) error {
 	})
 
 	//6.2 将ai结果发送给Alert
-	return alerter.GetAlert(t.AlertID).Send(*buildAiAlertContent(t, res))
+	return alerter.GetAlert(t.AlertID.Identity()).Send(*buildAiAlertContent(t, res))
 
 }
 
@@ -117,7 +117,7 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 
 	var kDocs []agent.Document
 	for _, kb := range t.KBase {
-		kbaseObj := kbase.Get(kb)
+		kbaseObj := kbase.Get(kb.Identity())
 		if kbaseObj == nil {
 			return nil, fmt.Errorf("agent task : kbase not exist")
 		}

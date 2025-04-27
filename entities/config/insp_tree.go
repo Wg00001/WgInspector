@@ -1,5 +1,10 @@
 package config
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 /**
  * @description: insp的树
  * @author Wg
@@ -11,86 +16,124 @@ type InspConfig struct {
 	Identity
 	SQL       string
 	AlertWhen string
-	Parent    Identity                 `gorm:"type:jsonb"`
-	Children  map[Identity]*InspConfig `gorm:"-"`
-	//AlertID   Identity
-	//AlertFunc func(alerter.Content) error //包括检查是否符合报警条件，并且发送报警
+	Parent    IdKey   `gorm:"type:jsonb"`
+	Children  InspMap `gorm:"-"`
 }
 
-func (InspIndex) GetIdentity() Identity {
-	return Identity{
-		ID:   0,
-		Name: "insp_tree",
-	}
-}
+type InspMap map[IdKey]*InspConfig
 
-type InspIndex map[Identity]*InspConfig
-
-func NewInspIndex(nodes []InspConfig) InspIndex {
-	idx := make(InspIndex, len(nodes))
-	for i := range nodes {
-		idx[nodes[i].Identity] = &nodes[i]
-	}
-
-	// 遍历所有节点，建立父子关系
-	for i := range nodes {
-		if nodes[i].Parent != (Identity{}) {
-			// 查找父节点
-			if parent, exists := idx[nodes[i].Parent]; exists {
-				if parent.Children == nil {
-					parent.Children = make(map[Identity]*InspConfig)
-				}
-				parent.Children[nodes[i].Identity] = &nodes[i]
-			}
+func (m InspMap) MarshalJSON() ([]byte, error) {
+	filtered := make(map[string]*InspConfig)
+	for idKey, config := range m {
+		if config == nil || config.SQL == "" {
+			continue
 		}
+		keyBytes, err := json.Marshal(idKey)
+		if err != nil {
+			return nil, fmt.Errorf("序列化键失败: %w", err)
+		}
+		var keyStr string
+		if err := json.Unmarshal(keyBytes, &keyStr); err != nil {
+			return nil, fmt.Errorf("键转换失败: %w", err)
+		}
+		filtered[keyStr] = config
+	}
+	return json.Marshal(filtered)
+}
+
+type InspIndex struct {
+	data   InspMap // 存储所有节点的索引
+	forest InspMap // 仅包含根节点
+}
+
+// 创建新索引
+func NewInspIndex(nodes []InspConfig) *InspIndex {
+	idx := &InspIndex{
+		data:   make(map[IdKey]*InspConfig, len(nodes)),
+		forest: make(map[IdKey]*InspConfig),
+	}
+
+	// 第一阶段：填充所有节点到data
+	for i := range nodes {
+		node := &nodes[i]
+		idKey := node.IdKey()
+		idx.data[idKey] = node
+	}
+
+	// 第二阶段：建立父子关系并识别根节点
+	for _, node := range idx.data {
+		parentKey := node.Parent
+
+		// 判断是否为根节点
+		if node.Parent.ID == 0 || idx.data[parentKey] == nil {
+			idx.forest[node.IdKey()] = node
+			continue
+		}
+
+		// 建立父子关系
+		parent := idx.data[parentKey]
+		if parent.Children == nil {
+			parent.Children = make(map[IdKey]*InspConfig)
+		}
+		parent.Children[node.IdKey()] = node
 	}
 
 	return idx
 }
 
-func (idx InspIndex) Get(baseID Identity, ids ...Identity) []*InspConfig {
-	// 合并所有查询ID（包括baseID和可变参数ids）
+// 获取指定节点及其递归子节点（带过滤和去重）
+func (idx *InspIndex) Get(baseID Identity, ids ...Identity) []*InspConfig {
 	allIDs := append([]Identity{baseID}, ids...)
-
 	var (
-		result  []*InspConfig                 // 最终结果
-		visited = make(map[Identity]struct{}) // 全局去重记录
-		queue   []*InspConfig                 // BFS队列
+		result  []*InspConfig
+		visited = make(map[IdKey]struct{}) // 改用IdKey类型去重
+		queue   []*InspConfig
 	)
 
-	// 初始化队列：添加所有存在的目标节点
+	// 初始化队列
 	for _, id := range allIDs {
-		if node, exists := idx[id]; exists {
-			// 如果节点未访问过且SQL有效，直接加入结果（父节点自身）
-			if _, seen := visited[id]; !seen && node.SQL != "" {
-				result = append(result, node)
-				visited[id] = struct{}{}
-			}
-			queue = append(queue, node)
+		idKey := id.IdKey()
+		node := idx.data[idKey]
+		if node == nil {
+			continue
 		}
+
+		// 处理当前节点自身
+		if node.SQL != "" && !exists(visited, idKey) {
+			result = append(result, node)
+			visited[idKey] = struct{}{}
+		}
+		queue = append(queue, node)
 	}
 
-	// BFS遍历
+	// BFS遍历子节点
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
 
 		for _, child := range current.Children {
+			childKey := child.IdKey()
+
 			// 去重检查
-			if _, exists := visited[child.Identity]; exists {
+			if exists(visited, childKey) {
 				continue
 			}
-			visited[child.Identity] = struct{}{} // 标记已访问
+			visited[childKey] = struct{}{}
 
-			// 过滤有效节点
+			// SQL过滤
 			if child.SQL != "" {
 				result = append(result, child)
 			}
 
-			// 加入队列继续遍历
 			queue = append(queue, child)
 		}
 	}
 
 	return result
+}
+
+// 辅助函数检查键是否存在
+func exists(m map[IdKey]struct{}, key IdKey) bool {
+	_, ok := m[key]
+	return ok
 }

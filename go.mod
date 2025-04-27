@@ -14,7 +14,6 @@ require (
 	github.com/parakeet-nest/parakeet v0.2.5
 	github.com/tmc/langchaingo v0.1.13
 	github.com/wg00001/wgo-sdk v0.9.0
-	go.etcd.io/etcd/client/v3 v3.5.21
 	golang.org/x/crypto v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.7

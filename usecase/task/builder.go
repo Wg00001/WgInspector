@@ -34,7 +34,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	for _, val := range taskCfg.TargetDB {
 		dbcfg, err := config2.GetWithType[config.DBConfig](config2.Key{
 			ConfigType: config.TypeDB,
-			Identity:   val,
+			Identity:   val.Identity(),
 		})
 		if err != nil {
 			return nil, err
@@ -50,7 +50,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	}
 	//添加todo列表的insp
 	for _, val := range taskCfg.Todo {
-		temp := config2.GetInsp(val)
+		temp := config2.GetInsp(val.Identity())
 		if temp == nil {
 			continue
 		}
@@ -59,7 +59,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 	//去掉not to do的insp (使用hash连接)
 	notToDo := make(map[config.Identity]bool, len(taskCfg.NotTodo))
 	for _, val := range taskCfg.NotTodo {
-		notToDo[val] = true
+		notToDo[val.Identity()] = true
 	}
 	newArr := make([]*config.InspConfig, 0, len(res.inspNodes))
 	for _, val := range res.inspNodes {

@@ -58,33 +58,6 @@ func GetInitConfig() config.InitConfig {
 	return globalInitConfig
 }
 
-// 可选的入参T，仅用于指定T的类型
-func GetMetaItemByObj[T config.Id](...T) ([]T, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	var t T
-	switch any(t).(type) {
-	case config.DBConfig:
-		return sliceCopy(Meta.DBs).([]T), nil
-	case config.LogConfig:
-		return sliceCopy(Meta.Logs).([]T), nil
-	case config.AlertConfig:
-		return sliceCopy(Meta.Alerts).([]T), nil
-	case config.TaskConfig:
-		return sliceCopy(Meta.Tasks).([]T), nil
-	case config.AgentConfig:
-		return sliceCopy(Meta.Agents).([]T), nil
-	case config.AgentTaskConfig:
-		return sliceCopy(Meta.AgentTasks).([]T), nil
-	case config.KnowledgeBaseConfig:
-		return sliceCopy(Meta.KBases).([]T), nil
-	case config.InspConfig:
-		return sliceCopy(Meta.InspNodes).([]T), nil
-	default:
-		return nil, fmt.Errorf("unknown config type: %T", t)
-	}
-}
-
 func GetMetaItem(configType string) (any, error) {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -226,12 +199,6 @@ func Save(key Key, val config.Id) (err error) {
 	if err != nil {
 		return err
 	}
-	//_, ok := index[key]
-	//if !ok {
-	//	AppendIndex(key.ConfigType, val)
-	//} else {
-	//	return util.DeepCopy(index[key], &val)
-	//}
 	return syncWithDB(key.ConfigType)
 }
 

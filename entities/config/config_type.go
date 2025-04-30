@@ -46,10 +46,10 @@ func GetConfigTypeName(data any) (string, error) {
 		return TypeAgentTask, nil
 	case KnowledgeBaseConfig, *KnowledgeBaseConfig:
 		return TypeKBase, nil
-	case InspIndex, *InspIndex:
+	case InspConfig, *InspConfig:
 		return TypeInspector, nil
 	default:
-		return "", fmt.Errorf("unknown config type: %T", data)
+		return "", fmt.Errorf("config_type: unknown config type: %T", data)
 	}
 }
 

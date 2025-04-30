@@ -90,7 +90,7 @@ func (c ConfigReaderPostgre) ReadConfig(configTypes ...string) (config.MetaConfi
 		for _, ct := range configTypes {
 			fn, ok := fMap[ct]
 			if !ok {
-				return meta, fmt.Errorf("unknown config type: %s", ct)
+				return meta, fmt.Errorf("config reader: unknown config type: %s", ct)
 			}
 			executeFuncs = append(executeFuncs, fn)
 		}
@@ -132,7 +132,7 @@ func (c ConfigReaderPostgre) SaveConfig(data config.Id) (int64, error) {
 		res, err := save[config.InspConfig](c.DB, v)
 		return res.ID, err
 	default:
-		return 0, fmt.Errorf("unknown config type: %T", data)
+		return 0, fmt.Errorf("config_reader - save: unknown config type: %T", data)
 	}
 }
 

@@ -237,7 +237,7 @@ func updateHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return getMetaItem(arg)
+	return getMetaItem(configType)
 }
 
 func deleteHandler(configType string, arg config.Id) any {
@@ -248,7 +248,7 @@ func deleteHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return getMetaItem(arg)
+	return getMetaItem(configType)
 }
 
 func createHandler(configType string, arg config.Id) any {
@@ -259,7 +259,7 @@ func createHandler(configType string, arg config.Id) any {
 	if err != nil {
 		return err
 	}
-	return getMetaItem(arg)
+	return getMetaItem(configType)
 }
 
 func (c *ClientWebSocket) handleChangePassword(conn *websocket.Conn, msg RequestMsg) error {
@@ -383,8 +383,8 @@ func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
 	return response(conn, msg.MsgMeta, "success")
 }
 
-func getMetaItem[T config.Id](data T) any {
-	res, err := config2.GetMetaItemByObj(data)
+func getMetaItem(dataType string) any {
+	res, err := config2.GetMetaItem(dataType)
 	if err != nil {
 		return err
 	}

@@ -64,21 +64,36 @@ func (t *Task) Do(ctx context.Context) error {
 				return ctx.Err()
 			default:
 			}
+			// 准备异步处理所需数据（避免在闭包中捕获循环变量）
+			dbName := tdb.Identity.Name
+			dbIdent := tdb.Identity // 假设这是需要传递的完整标识对象
 
 			// 同步执行核心查询逻辑
 			dbInstance := db.Get(tdb.Identity)
 			query, err := dbInstance.Query(inspect.SQL)
 			if err != nil {
-				return fmt.Errorf("query failed: %w", err)
+				alerter2.GetAlert(alertID.Identity()).Send(alerter.Content{
+					TimeStamp: time.Now(),
+					Message:   fmt.Sprintf("insp_task get fail: query failed: %s", err),
+					TaskName:  taskName,
+					TaskID:    taskId,
+					DBName:    dbIdent,
+					InspName:  inspName,
+				})
+				continue
 			}
 			result, err := db2.RowsToResult(query)
 			if err != nil {
-				return fmt.Errorf("result conversion failed: %w", err)
+				alerter2.GetAlert(alertID.Identity()).Send(alerter.Content{
+					TimeStamp: time.Now(),
+					Message:   fmt.Sprintf("insp_task rows fail:result conversion failed: %s", err),
+					TaskName:  taskName,
+					TaskID:    taskId,
+					DBName:    dbIdent,
+					InspName:  inspName,
+				})
+				continue
 			}
-
-			// 准备异步处理所需数据（避免在闭包中捕获循环变量）
-			dbName := tdb.Identity.Name
-			dbIdent := tdb.Identity // 假设这是需要传递的完整标识对象
 
 			// 启动日志记录协程
 			wg.Add(1)
@@ -115,6 +130,7 @@ func (t *Task) Do(ctx context.Context) error {
 					errChan <- fmt.Errorf("alert failed: %w", err)
 				}
 			}(alerter.Content{
+				Success:   true,
 				TimeStamp: time.Now(),
 				TaskName:  taskName,
 				TaskID:    taskId,

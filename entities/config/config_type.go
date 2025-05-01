@@ -27,6 +27,12 @@ type ConfigType interface {
 }
 
 func Turn[T ConfigType](data Id) T {
+	// 处理指针类型
+	if ptr, ok := any(data).(*T); ok {
+		return *ptr
+	}
+
+	// 处理值类型
 	return any(data).(T)
 }
 

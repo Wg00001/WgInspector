@@ -57,13 +57,21 @@ func (n *IdKey) Identity() Identity {
 type IdKeyArray []IdKey
 
 func (a IdKeyArray) Value() (driver.Value, error) {
-	return json.Marshal(a)
+	if len(a) == 0 {
+		return []byte("[]"), nil
+	}
+	v, err := json.Marshal(a)
+	return v, err
 }
 
 func (a *IdKeyArray) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("无法将数据库字段转换为字节数组")
+	}
+	if len(bytes) == 0 {
+		*a = make([]IdKey, 0)
+		return nil
 	}
 	err := json.Unmarshal(bytes, a)
 	return err

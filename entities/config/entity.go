@@ -59,11 +59,11 @@ type TaskConfig struct {
 	Identity
 	Cron         CronTab
 	AllInspector bool
-	LogID        IdKey      `gorm:"type:jsonb"`
-	AlertID      IdKey      `gorm:"type:jsonb"`
-	TargetDB     IdKeyArray `gorm:"type:jsonb"`
-	Todo         IdKeyArray `gorm:"type:jsonb"`
-	NotTodo      IdKeyArray `gorm:"type:jsonb"`
+	LogID        IdKey      `gorm:"type:jsonb" `
+	AlertID      IdKey      `gorm:"type:jsonb" `
+	TargetDB     IdKeyArray `gorm:"type:jsonb" `
+	Todo         IdKeyArray `gorm:"type:jsonb" `
+	NotTodo      IdKeyArray `gorm:"type:jsonb" `
 }
 
 type CronTab string

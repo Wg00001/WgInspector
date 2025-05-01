@@ -57,24 +57,16 @@ type AlertConfig struct {
 
 type TaskConfig struct {
 	Identity
-	Cron         Cron `gorm:"type:jsonb"`
+	Cron         CronTab
 	AllInspector bool
-
-	LogID    IdKey   `gorm:"type:jsonb"`
-	AlertID  IdKey   `gorm:"type:jsonb"`
-	TargetDB []IdKey `gorm:"type:jsonb[]"`
-
-	Todo    []IdKey `gorm:"type:jsonb[]"`
-	NotTodo []IdKey `gorm:"type:jsonb[]"`
+	LogID        IdKey      `gorm:"type:jsonb"`
+	AlertID      IdKey      `gorm:"type:jsonb"`
+	TargetDB     IdKeyArray `gorm:"type:jsonb"`
+	Todo         IdKeyArray `gorm:"type:jsonb"`
+	NotTodo      IdKeyArray `gorm:"type:jsonb"`
 }
 
-type Cron struct {
-	CronTab  string
-	Duration time.Duration
-	AtTime   []string
-	Weekly   []time.Weekday
-	Monthly  []int
-}
+type CronTab string
 
 // ---Agents Agents 相关配置
 
@@ -91,13 +83,13 @@ type AgentConfig struct {
 
 type AgentTaskConfig struct {
 	Identity
-	Cron          Cron      `gorm:"type:jsonb"`
-	LogFilter     LogFilter `gorm:"type:jsonb"`
-	LogID         IdKey     `gorm:"type:jsonb"`
-	AlertID       IdKey     `gorm:"type:jsonb"`
-	AgentID       IdKey     `gorm:"type:jsonb"`
-	KbaseAgentID  IdKey     `gorm:"type:jsonb"`
-	KBase         []IdKey   `gorm:"type:jsonb[]"`
+	Cron          CronTab
+	LogFilter     LogFilter  `gorm:"type:jsonb"`
+	LogID         IdKey      `gorm:"type:jsonb"`
+	AlertID       IdKey      `gorm:"type:jsonb"`
+	AgentID       IdKey      `gorm:"type:jsonb"`
+	KbaseAgentID  IdKey      `gorm:"type:jsonb"`
+	KBase         IdKeyArray `gorm:"type:jsonb"`
 	KBaseResults  int
 	KBaseMaxLen   int
 	SystemMessage string
@@ -107,10 +99,10 @@ type LogFilter struct {
 	// 时间范围：Timestamp 需在 [StartTime, EndTime] 之间
 	StartTime time.Time
 	EndTime   time.Time
-	TaskNames []IdKey // Id 匹配列表
-	DBIDs     []IdKey // DBName 匹配列表
-	TaskIDs   []IdKey // TaskID 匹配列表
-	InspNames []IdKey // Insp匹配列表
+	TaskNames IdKeyArray // Id 匹配列表
+	DBIDs     IdKeyArray // DBName 匹配列表
+	TaskIDs   IdKeyArray // TaskID 匹配列表
+	InspNames IdKeyArray // Insp匹配列表
 }
 
 type KnowledgeBaseConfig struct {

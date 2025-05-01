@@ -158,7 +158,7 @@ func (t *Task) Do(ctx context.Context) error {
 	return nil
 }
 
-func (t *Task) GetCron() config.Cron {
+func (t *Task) GetCron() config.CronTab {
 	return t.Config.Cron
 }
 

@@ -24,6 +24,9 @@ type InspMap map[IdKey]*InspConfig
 
 func (m InspMap) MarshalJSON() ([]byte, error) {
 	filtered := make(map[string]*InspConfig)
+	if m == nil {
+		return []byte("{}"), nil
+	}
 	for idKey, config := range m {
 		if config == nil || config.SQL == "" {
 			continue
@@ -32,11 +35,11 @@ func (m InspMap) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("序列化键失败: %w", err)
 		}
-		var keyStr string
+		var keyStr Identity
 		if err := json.Unmarshal(keyBytes, &keyStr); err != nil {
 			return nil, fmt.Errorf("键转换失败: %w", err)
 		}
-		filtered[keyStr] = config
+		filtered[keyStr.ToString()] = config
 	}
 	return json.Marshal(filtered)
 }

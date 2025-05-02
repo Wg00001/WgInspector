@@ -3,6 +3,7 @@ package task
 import (
 	"WgInspector/entities/config"
 	"context"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -21,7 +22,8 @@ type Task interface {
 
 type Cron interface {
 	Init() error
-	AddTask(task Task) error
+	AddTask(task Task) (uuid.UUID, error)
+	Delete(name string) error
 	Start()
 	Exit()
 	Monitor(ctx context.Context) (<-chan []Stat, error)

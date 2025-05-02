@@ -68,7 +68,7 @@ type TaskConfig struct {
 
 type CronTab string
 
-// ---Agents Agents 相关配置
+//---Agents 相关配置
 
 // AgentConfig 用户只能指定一个全局Ai，所有的分析均由此Ai完成
 type AgentConfig struct {

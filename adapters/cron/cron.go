@@ -46,13 +46,12 @@ func (c *Cron) Init() error {
 	return nil
 }
 
-func (c *Cron) AddTask(task task.Task) error {
-	definition := gocron.CronJob(string(task.GetCron()), true)
+func (c *Cron) AddTask(task task.Task) (uuid.UUID, error) {
 	u := uuid.NewSHA1(uuid.NameSpaceOID, []byte(task.Identity().Name))
 	c.s.RemoveJob(u)
 
 	_, err := c.s.NewJob(
-		definition,
+		gocron.CronJob(string(task.GetCron()), true),
 		gocron.NewTask(func() {
 			err := task.Do(context.Background())
 			if err != nil {
@@ -64,7 +63,7 @@ func (c *Cron) AddTask(task task.Task) error {
 		gocron.WithName(task.Identity().Name),
 		gocron.WithIdentifier(u),
 	)
-	return err
+	return u, err
 }
 
 func (c *Cron) Start() {
@@ -182,4 +181,13 @@ func (c *Cron) DoNow(key string) error {
 		}
 	}
 	return fmt.Errorf("task not exist: %s\n", key)
+}
+
+func (c *Cron) Delete(name string) error {
+	for _, v := range c.s.Jobs() {
+		if v.Name() == name {
+			return c.s.RemoveJob(v.ID())
+		}
+	}
+	return fmt.Errorf("cron not exist [%s]\n", name)
 }

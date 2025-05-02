@@ -6,6 +6,7 @@ import (
 	"WgInspector/usecase/agent"
 	client2 "WgInspector/usecase/client"
 	config2 "WgInspector/usecase/config"
+	"WgInspector/usecase/task"
 	"WgInspector/usecase/task/cron"
 	"context"
 	"encoding/json"
@@ -34,6 +35,7 @@ const (
 	clientTaskListen       = "task_listen"
 	clientTaskClose        = "task_close"
 	clientTaskDo           = "task_do"
+	clientRefreshCron      = "task_cron_refresh"
 )
 
 type MsgMeta struct {
@@ -129,6 +131,8 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 			taskCtxCancel()
 		case clientTaskDo:
 			logErr(clientTaskDo, handleTaskDo(conn, msg))
+		case clientRefreshCron:
+			logErr(clientRefreshCron, handleRefreshCron(conn, msg))
 		default:
 			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 		}
@@ -183,6 +187,12 @@ func response(conn *websocket.Conn, msgMeta MsgMeta, obj any) error {
 			Success:    false,
 			Message:    t.Error(),
 			ConfigData: t,
+		})
+	case string:
+		return conn.WriteJSON(ResponseMsg{
+			MsgMeta: msgMeta,
+			Success: true,
+			Message: t,
 		})
 	default:
 		return conn.WriteJSON(ResponseMsg{
@@ -370,12 +380,13 @@ func handleGetTaskStatus(parentCtx context.Context, conn *websocket.Conn, msg Re
 }
 
 func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
-	var id config.Identity
-	err := json.Unmarshal(msg.ConfigData, &id)
+	var uuid string
+	err := json.Unmarshal(msg.ConfigData, &uuid)
 	if err != nil {
+		response(conn, msg.MsgMeta, err)
 		return err
 	}
-	err = cron.DoNow(id)
+	err = cron.DoNow(uuid)
 	if err != nil {
 		response(conn, msg.MsgMeta, err)
 		return err
@@ -389,4 +400,28 @@ func getMetaItem(dataType string) any {
 		return err
 	}
 	return res
+}
+
+func handleRefreshCron(conn *websocket.Conn, msg RequestMsg) error {
+	err := cron.Init()
+	if err != nil {
+		response(conn, msg.MsgMeta, err)
+		return err
+	}
+	for _, v := range config2.Meta.Tasks {
+		t := task.NewInspTask(v)
+		err := cron.AddTask(&t)
+		if err != nil {
+			response(conn, msg.MsgMeta, err)
+			return err
+		}
+	}
+	for _, v := range config2.Meta.AgentTasks {
+		err := cron.AddTask(agent.NewTask(v))
+		if err != nil {
+			response(conn, msg.MsgMeta, err)
+			return err
+		}
+	}
+	return response(conn, msg.MsgMeta, "success")
 }

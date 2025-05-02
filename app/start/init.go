@@ -163,7 +163,10 @@ func InitTask() error {
 	defer config2.RUnlock()
 	for _, v := range config2.Meta.Tasks {
 		t := task.NewInspTask(v)
-		cron.AddTask(&t)
+		err := cron.AddTask(&t)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

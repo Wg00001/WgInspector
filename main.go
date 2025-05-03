@@ -42,6 +42,7 @@ func main() {
 	}
 
 	go func() {
+		start.Run(ctx)
 		client.Listen(ctx)
 	}()
 
@@ -51,4 +52,5 @@ func main() {
 	case <-ctx.Done():
 		log.Println("[INFO] === System services Exited ===")
 	}
+
 }

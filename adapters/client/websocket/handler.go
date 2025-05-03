@@ -190,9 +190,10 @@ func response(conn *websocket.Conn, msgMeta MsgMeta, obj any) error {
 		})
 	case string:
 		return conn.WriteJSON(ResponseMsg{
-			MsgMeta: msgMeta,
-			Success: true,
-			Message: t,
+			MsgMeta:    msgMeta,
+			Success:    true,
+			Message:    t,
+			ConfigData: t,
 		})
 	default:
 		return conn.WriteJSON(ResponseMsg{
@@ -391,7 +392,7 @@ func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
 		response(conn, msg.MsgMeta, err)
 		return err
 	}
-	return response(conn, msg.MsgMeta, "success")
+	return response(conn, msg.MsgMeta, uuid)
 }
 
 func getMetaItem(dataType string) any {
@@ -402,7 +403,12 @@ func getMetaItem(dataType string) any {
 	return res
 }
 
+var refreshCronMu sync.Mutex
+
 func handleRefreshCron(conn *websocket.Conn, msg RequestMsg) error {
+	refreshCronMu.Lock()
+	defer refreshCronMu.Unlock()
+	cron.Stop()
 	err := cron.Init()
 	if err != nil {
 		response(conn, msg.MsgMeta, err)
@@ -423,5 +429,6 @@ func handleRefreshCron(conn *websocket.Conn, msg RequestMsg) error {
 			return err
 		}
 	}
+	cron.Start()
 	return response(conn, msg.MsgMeta, "success")
 }

@@ -35,8 +35,8 @@ var _ task.Cron = (*Cron)(nil)
 
 func (c *Cron) Init() error {
 	sTemp, err := gocron.NewScheduler(
-		gocron.WithLocation(time.Local), // 设置时区
-		//gocron.WithGlobalJobOptions(gocron.WithEventListeners(c.afterListener())), // 全局任务选项
+		gocron.WithLocation(time.Local),                                           // 设置时区
+		gocron.WithGlobalJobOptions(gocron.WithEventListeners(c.afterListener())), // 全局任务选项
 	)
 	if err != nil {
 		return fmt.Errorf("init cron Scheduler fail！: %v", err)
@@ -55,6 +55,7 @@ func (c *Cron) AddTask(task task.Task) (uuid.UUID, error) {
 		//gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(time.Second*3))),
 		gocron.CronJob(string(task.GetCron()), true),
 		gocron.NewTask(func() {
+			fmt.Println("start")
 			err := task.Do(context.Background())
 			if err != nil {
 				log.Printf("gocron do task Err\n- task name: %s\n- err: %v\n--- \n", task.Identity(), err)

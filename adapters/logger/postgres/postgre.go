@@ -40,7 +40,8 @@ func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
 	if temp.TableName == "" {
 		temp.TableName = logger.LogContent{}.TableName()
 	}
-	gormDB, err := utils.ConnectGormDB(temp.Driver, temp.DSN)
+	//todo:
+	gormDB, err := utils.ConnectGormDB("postgres", temp.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (l LogPostgre) Init(cfg config.LogConfig) (logger.Logger, error) {
 		return nil, fmt.Errorf("failed to migrate table: %w", err)
 	}
 
-	temp.conn = l.conn.Table(temp.TableName)
+	temp.conn = gormDB.Table(temp.TableName)
 	temp.LogConfig = cfg
 	return temp, nil
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"gopkg.in/yaml.v3"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"sync"
 )
@@ -25,6 +26,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	mainCtx = ctx
 	mainCancel = cancel
+
+	//go func() {
+	//	log.Printf("性能监控服务器运行在 http://localhost:%d/debug/pprof\n", 6060)
+	//	log.Fatal(http.ListenAndServe(":6060", nil))
+	//}()
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
@@ -53,3 +59,7 @@ func main() {
 		log.Println("[INFO] === System services Exited ===")
 	}
 }
+
+// go tool pprof -seconds 60 -http=:8080 http://localhost:6060/debug/pprof/heap
+// go tool pprof -http=:8080 http://localhost:6060/debug/pprof/goroutine
+// go tool pprof -http=:8080 http://localhost:6060/debug/pprof/profile?seconds=60

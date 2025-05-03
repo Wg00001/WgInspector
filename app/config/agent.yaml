@@ -37,3 +37,9 @@ KBase:
       Driver: "ollama"
       BaseUrl: "http://127.0.0.1:11434"
       Model: "deepseek-r1:7b"
+
+
+Embedding:
+  Driver: "ollama"
+  BaseUrl: "/v1/embeddings"
+  Model: "deepseek-r1:7b"

@@ -11,9 +11,11 @@ import (
 	chromago "github.com/amikos-tech/chroma-go"
 	"github.com/amikos-tech/chroma-go/pkg/embeddings"
 	defaultef "github.com/amikos-tech/chroma-go/pkg/embeddings/default_ef"
+
+	//_ "github.com/amikos-tech/chroma-go/pkg/embeddings/default_ef"
+	//defaultef "github.com/amikos-tech/chroma-go/pkg/embeddings/default_ef"
 	"github.com/amikos-tech/chroma-go/pkg/embeddings/ollama"
 	"github.com/amikos-tech/chroma-go/pkg/embeddings/openai"
-
 	"github.com/amikos-tech/chroma-go/types"
 )
 

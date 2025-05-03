@@ -9,8 +9,11 @@ import (
 	"context"
 	"fmt"
 	chromago "github.com/amikos-tech/chroma-go"
-	"github.com/amikos-tech/chroma-go/openai"
+	"github.com/amikos-tech/chroma-go/pkg/embeddings"
+	defaultef "github.com/amikos-tech/chroma-go/pkg/embeddings/default_ef"
 	"github.com/amikos-tech/chroma-go/pkg/embeddings/ollama"
+	openai "github.com/amikos-tech/chroma-go/pkg/embeddings/openai"
+
 	"github.com/amikos-tech/chroma-go/types"
 )
 
@@ -34,7 +37,10 @@ type KBaseChroma struct {
 	EmbeddingBaseUrl string
 	EmbeddingModel   string
 	EmbeddingApikey  string
-	Efunc            types.EmbeddingFunction //进行向量计算的函数
+	EFA              EmbeddingFunctionAdapter     //进行向量计算的函数
+	Efunc            embeddings.EmbeddingFunction //进行向量计算的函数
+	client           *chromago.Client
+	collection       *chromago.Collection
 }
 
 var _ agent.KnowledgeBase = (*KBaseChroma)(nil)
@@ -62,7 +68,7 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 	case "ollama":
 		k.Efunc, err = ollama.NewOllamaEmbeddingFunction(
 			ollama.WithBaseURL(k.EmbeddingBaseUrl),
-			ollama.WithModel(k.EmbeddingModel))
+			ollama.WithModel(embeddings.EmbeddingModel(k.EmbeddingModel)))
 		if err != nil {
 			return
 		}
@@ -85,9 +91,26 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 			return k, fmt.Errorf("agent - kbase: chroma Error creating OpenAI embedding function: %v\n", err)
 		}
 	default:
+		k.Efunc, _, err = defaultef.NewDefaultEmbeddingFunction()
+		if err != nil {
+			return
+		}
 	}
-
-	return k, nil
+	k.client, err = chromago.NewClient(
+		chromago.WithBasePath(k.Path),
+		chromago.WithTenant(k.Tenant),
+		chromago.WithDatabase(k.Database),
+		chromago.WithDebug(true),
+	)
+	k.EFA = EmbeddingFunctionAdapter{ef2: k.Efunc}
+	k.collection, err = k.client.CreateCollection(
+		context.Background(),
+		k.Collection,
+		map[string]interface{}{},
+		true,
+		&k.EFA,
+		types.L2)
+	return k, err
 }
 
 func (k KBaseChroma) WriteIn(docs []agent.Document) error {
@@ -95,10 +118,6 @@ func (k KBaseChroma) WriteIn(docs []agent.Document) error {
 		return fmt.Errorf("agent - kbase: chroma write in fail: can't write nil document")
 	}
 	ctx := context.Background()
-	collection, err := k.connect(ctx)
-	if err != nil {
-		return err
-	}
 
 	metaData := make([]map[string]interface{}, 0, len(docs))
 	document := make([]string, 0, len(docs))
@@ -112,8 +131,7 @@ func (k KBaseChroma) WriteIn(docs []agent.Document) error {
 			ems = append(ems, &types.Embedding{ArrayOfFloat32: &d.Embedding})
 		}
 	}
-
-	_, err = collection.Add(ctx, ems, metaData, document, ids)
+	_, err := k.collection.Add(ctx, ems, metaData, document, ids)
 	if err != nil {
 		return fmt.Errorf("agent - kbase: chroma Error adding documents: %v\n", err)
 	}
@@ -123,14 +141,9 @@ func (k KBaseChroma) WriteIn(docs []agent.Document) error {
 func (k KBaseChroma) Search(queries agent.QueryData) ([]agent.Document, error) {
 	ctx := context.Background()
 
-	collection, err := k.connect(ctx)
-	if err != nil {
-		return nil, err
-	}
 	query := queryBuilder(queries)
-
 	//todo：将入参转成where metadata和where document格式
-	results, err := collection.QueryWithOptions(
+	results, err := k.collection.QueryWithOptions(
 		ctx,
 		types.WithQueryTexts(query.text()),
 		types.WithNResults(query.results()),
@@ -149,17 +162,13 @@ func (k KBaseChroma) SimilaritySearch(topK int, embedding []float32) ([]agent.Do
 		return nil, fmt.Errorf("empty embedding")
 	}
 	ctx := context.Background()
-	collection, err := k.connect(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("connection failed: %w", err)
-	}
 
 	// 构建嵌入查询向量
 	queryEmb := &types.Embedding{
 		ArrayOfFloat32: &embedding,
 	}
 
-	results, err := collection.QueryWithOptions(
+	results, err := k.collection.QueryWithOptions(
 		ctx,
 		types.WithQueryEmbeddings([]*types.Embedding{queryEmb}),
 		types.WithNResults(int32(topK)),
@@ -177,27 +186,7 @@ func (k KBaseChroma) Embedding(query string) ([]float32, error) {
 	if err != nil {
 		return nil, err
 	}
-	return *embedQuery.ArrayOfFloat32, nil
-}
-
-func (k KBaseChroma) connect(ctx context.Context) (*chromago.Collection, error) {
-	var cliopt []chromago.ClientOption
-	if k.Tenant != "" {
-		cliopt = append(cliopt, chromago.WithTenant(k.Tenant))
-	}
-	if k.Database != "" {
-		cliopt = append(cliopt, chromago.WithDatabase(k.Database))
-	}
-	client, err := chromago.NewClient(k.Path, cliopt...)
-	if err != nil {
-		return nil, fmt.Errorf("agent - kbase: chroma Failed to create client: %v\n", err)
-	}
-	collection, err := client.CreateCollection(ctx, k.Collection, map[string]interface{}{}, true, k.Efunc, types.L2)
-	if err != nil {
-		return nil, fmt.Errorf("agent - kbase: chroma Failed to create or get collection: \n    %v\n", err)
-	}
-
-	return collection, nil
+	return embedQuery.ContentAsFloat32(), nil
 }
 
 func parseQueryResults(results *chromago.QueryResults) []agent.Document {
@@ -223,4 +212,41 @@ func parseQueryResults(results *chromago.QueryResults) []agent.Document {
 		}
 	}
 	return docs
+}
+
+// 方案一：直接包装 + 空实现 EmbedRecords
+type EmbeddingFunctionAdapter struct {
+	ef2 embeddings.EmbeddingFunction
+}
+
+func (a *EmbeddingFunctionAdapter) EmbedDocuments(ctx context.Context, texts []string) ([]*types.Embedding, error) {
+	es, err := a.ef2.EmbedDocuments(ctx, texts)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*types.Embedding, len(es))
+	for i := range es {
+		x, y := es[i].ContentAsFloat32(), es[i].ContentAsInt32()
+		res[i] = &types.Embedding{
+			&x,
+			&y,
+		}
+	}
+	return res, nil
+}
+
+func (a *EmbeddingFunctionAdapter) EmbedQuery(ctx context.Context, text string) (*types.Embedding, error) {
+	query, err := a.ef2.EmbedQuery(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+	x, y := query.ContentAsFloat32(), query.ContentAsInt32()
+	return &types.Embedding{
+		&x,
+		&y,
+	}, nil
+}
+
+func (a *EmbeddingFunctionAdapter) EmbedRecords(ctx context.Context, records []*types.Record, force bool) error {
+	return nil
 }

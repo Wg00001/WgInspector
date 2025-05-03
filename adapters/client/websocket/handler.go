@@ -85,57 +85,60 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 		// 更新最后活动时间
 		c.updateConnectionTime(conn)
 
-		// 解析和处理消息
-		msg := RequestMsg{}
-		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("消息解析失败: %v", err)
-			continue
-		}
+		go func() {
 
-		handleWithAuth := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
-			if user.Level < authLevel {
-				return response(conn, msg.MsgMeta, fmt.Errorf("no permission"))
+			// 解析和处理消息
+			msg := RequestMsg{}
+			if err := json.Unmarshal(message, &msg); err != nil {
+				log.Printf("消息解析失败: %v", err)
+				return
 			}
-			return handler(conn, msg, handleFunc, responseFunc)
-		}
 
-		switch msg.Action {
-		case clientActionGet:
-			if msg.ConfigType == "Meta" || msg.ConfigType == "" {
-				config2.RLock()
-				logErr(clientActionGet, response(conn, msg.MsgMeta, config2.Meta))
-				config2.RUnlock()
-			} else {
-				logErr(clientActionGet, handleWithAuth(getHandler, response, 0))
+			handleWithAuth := func(handleFunc HandleFunc, responseFunc ResponseFunc, authLevel int) error {
+				if user.Level < authLevel {
+					return response(conn, msg.MsgMeta, fmt.Errorf("no permission"))
+				}
+				return handler(conn, msg, handleFunc, responseFunc)
 			}
-		case clientActionGetID:
-			logErr(clientActionGetID, handleWithAuth(getIdHandler, response, 0))
-		case clientActionUpdate:
-			logErr(clientActionUpdate, handleWithAuth(updateHandler, responseWithCallback, 1))
-		case clientActionDelete:
-			logErr(clientActionDelete, handleWithAuth(deleteHandler, responseWithCallback, 1))
-		case clientActionCreate:
-			logErr(clientActionCreate, handleWithAuth(createHandler, responseWithCallback, 1))
-		case clientActionChangePass:
-			logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
-		case clientNoticeConfirm:
-			logErr(clientNoticeConfirm, handleNoticeConfirm(conn, msg, user))
-		case clientNoticeGet:
-			msg.ConfigData = message
-			logErr(clientNoticeGet, handleNoticeGet(conn, msg))
-		case clientTaskListen:
-			taskCtxCancel()
-			taskCtx, taskCtxCancel = context.WithCancel(context.Background())
-			logErr(clientTaskListen, handleGetTaskStatus(taskCtx, conn, msg))
-		case clientTaskClose:
-			taskCtxCancel()
-		case clientTaskDo:
-			logErr(clientTaskDo, handleTaskDo(conn, msg))
-		case clientRefreshCron:
-			logErr(clientRefreshCron, handleRefreshCron(conn, msg))
-		default:
-			log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
-		}
+
+			switch msg.Action {
+			case clientActionGet:
+				if msg.ConfigType == "Meta" || msg.ConfigType == "" {
+					config2.RLock()
+					logErr(clientActionGet, response(conn, msg.MsgMeta, config2.Meta))
+					config2.RUnlock()
+				} else {
+					logErr(clientActionGet, handleWithAuth(getHandler, response, 0))
+				}
+			case clientActionGetID:
+				logErr(clientActionGetID, handleWithAuth(getIdHandler, response, 0))
+			case clientActionUpdate:
+				logErr(clientActionUpdate, handleWithAuth(updateHandler, responseWithCallback, 1))
+			case clientActionDelete:
+				logErr(clientActionDelete, handleWithAuth(deleteHandler, responseWithCallback, 1))
+			case clientActionCreate:
+				logErr(clientActionCreate, handleWithAuth(createHandler, responseWithCallback, 1))
+			case clientActionChangePass:
+				logErr(clientActionChangePass, response(conn, MsgMeta{Action: clientActionChangePass}, c.handleChangePassword(conn, msg)))
+			case clientNoticeConfirm:
+				logErr(clientNoticeConfirm, handleNoticeConfirm(conn, msg, user))
+			case clientNoticeGet:
+				msg.ConfigData = message
+				logErr(clientNoticeGet, handleNoticeGet(conn, msg))
+			case clientTaskListen:
+				taskCtxCancel()
+				taskCtx, taskCtxCancel = context.WithCancel(context.Background())
+				logErr(clientTaskListen, handleGetTaskStatus(taskCtx, conn, msg))
+			case clientTaskClose:
+				taskCtxCancel()
+			case clientTaskDo:
+				logErr(clientTaskDo, handleTaskDo(conn, msg))
+			case clientRefreshCron:
+				logErr(clientRefreshCron, handleRefreshCron(conn, msg))
+			default:
+				log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
+			}
+		}()
 	}
 }
 

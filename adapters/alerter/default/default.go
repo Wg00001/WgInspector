@@ -4,7 +4,7 @@ import (
 	"WgInspector/entities/alerter"
 	"WgInspector/entities/config"
 	alerter2 "WgInspector/usecase/alerter"
-	"fmt"
+	log2 "log"
 )
 
 /**
@@ -25,7 +25,8 @@ func (e AlerterDefault) Init(config config.AlertConfig) (alerter.Alerter, error)
 }
 
 func (e AlerterDefault) Send(alerter.Content) error {
-	return fmt.Errorf("Alert Err - Empty Alert: this alerter has not init, please check config ")
+	log2.Printf("Alert Err - Empty Alert: this alerter has not init, please check config \n")
+	return nil
 }
 
 var _ alerter.Alerter = (*AlerterDefault)(nil)

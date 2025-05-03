@@ -22,12 +22,12 @@ type Logger interface {
 }
 
 type LogContent struct {
-	Timestamp time.Time
-	TaskName  string
-	DBName    string
-	InspName  string
-	TaskID    string //task批次编号
-	Result    []byte `gorm:"type:jsonb"`
+	Timestamp   time.Time
+	TaskName    string
+	DBName      string
+	InspectName string
+	TaskID      string //task批次编号
+	Result      []byte `gorm:"type:jsonb"`
 }
 
 func (receiver LogContent) TableName() string {

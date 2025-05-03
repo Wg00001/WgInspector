@@ -76,3 +76,27 @@ func (a *IdKeyArray) Scan(value interface{}) error {
 	err := json.Unmarshal(bytes, a)
 	return err
 }
+
+func (lf LogFilter) Value() (driver.Value, error) {
+	return json.Marshal(lf)
+}
+
+// Scan 从数据库JSONB字段反序列化到LogFilter结构体
+func (lf *LogFilter) Scan(value interface{}) error {
+	if value == nil {
+		*lf = LogFilter{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("无法将数据库字段转换为字节数组，实际类型：%T", value)
+	}
+
+	if len(bytes) == 0 {
+		*lf = LogFilter{}
+		return nil
+	}
+
+	return json.Unmarshal(bytes, lf)
+}

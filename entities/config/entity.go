@@ -59,11 +59,11 @@ type TaskConfig struct {
 	Identity
 	Cron         CronTab
 	AllInspector bool
-	LogID        IdKey      `gorm:"type:jsonb" `
-	AlertID      IdKey      `gorm:"type:jsonb" `
-	TargetDB     IdKeyArray `gorm:"type:jsonb" `
-	Todo         IdKeyArray `gorm:"type:jsonb" `
-	NotTodo      IdKeyArray `gorm:"type:jsonb" `
+	LogID        IdKey      `gorm:"type:jsonb"`
+	AlertID      IdKey      `gorm:"type:jsonb"`
+	TargetDB     IdKeyArray `gorm:"type:jsonb"`
+	Todo         IdKeyArray `gorm:"type:jsonb"`
+	NotTodo      IdKeyArray `gorm:"type:jsonb"`
 }
 
 type CronTab string
@@ -101,8 +101,8 @@ type LogFilter struct {
 	EndTime   time.Time
 	TaskNames IdKeyArray // Id 匹配列表
 	DBIDs     IdKeyArray // DBName 匹配列表
-	TaskIDs   IdKeyArray // TaskID 匹配列表
 	InspNames IdKeyArray // Insp匹配列表
+	TaskIDs   IdKeyArray // TaskID 匹配列表
 }
 
 type KnowledgeBaseConfig struct {

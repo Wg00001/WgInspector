@@ -109,12 +109,12 @@ func (t *Task) Do(ctx context.Context) error {
 					errChan <- fmt.Errorf("logging failed: %w", err)
 				}
 			}(logger.LogContent{
-				Timestamp: time.Now(),
-				TaskName:  taskName.Name,
-				TaskID:    taskId,
-				InspName:  inspName.Name,
-				DBName:    dbName,
-				Result:    result.MarshallJSON(),
+				Timestamp:   time.Now(),
+				TaskName:    taskName.Name,
+				TaskID:      taskId,
+				InspectName: inspName.Name,
+				DBName:      dbName,
+				Result:      result.MarshallJSON(),
 			})
 
 			// 启动警报发送协程
@@ -137,6 +137,7 @@ func (t *Task) Do(ctx context.Context) error {
 				DBName:    dbIdent,
 				InspName:  inspName,
 				Result:    result,
+				AlertWhen: inspect.AlertWhen,
 			})
 		}
 	}

@@ -18,7 +18,7 @@ import (
  */
 
 func init() {
-	ai2.RegisterDriver("ollama", AnalyzerOllama{})
+	ai2.RegisterDriver("OllamaApi", AnalyzerOllama{})
 }
 
 type AnalyzerOllama config.AgentConfig

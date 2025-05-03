@@ -71,26 +71,32 @@ func (t *AgentTask) Do(context.Context) error {
 		return err
 	}
 	res, err := a.Analyze(content)
+	resb := []byte(res)
 	if err != nil {
 		return err
 	}
 
 	//5.1 格式验证
 	var report AnalysisReport
-	err = json.Unmarshal([]byte(res), &report)
+	l, r := findJsonIdx(resb)
+	if l >= r {
+		return fmt.Errorf("agent_task analyze result format fail")
+	}
+	err = json.Unmarshal(resb[l:r+1], &report)
 	if err != nil {
 		return err
 	}
+	reportStr := report.String()
 
 	//6.1 自学习（将巡检结果发进知识库以及发给用户确认）
 	go client.Notice(client2.NoticeContent{
-		Content:     res,
+		Content:     reportStr,
 		Time:        time.Now(),
-		ConfirmStat: client2.Unread,
+		ConfirmStat: client2.UnConfirm,
 	})
 
 	//6.2 将ai结果发送给Alert
-	return alerter.GetAlert(t.AlertID.Identity()).Send(*buildAiAlertContent(t, res))
+	return alerter.GetAlert(t.AlertID.Identity()).Send(*buildAiAlertContent(t, reportStr))
 
 }
 
@@ -104,7 +110,9 @@ func (t *AgentTask) Identity() config.Identity {
 
 func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 	if len(t.KBase) == 0 {
-		return nil, fmt.Errorf("agent - kbase: agent has not kbase")
+		//return nil, fmt.Errorf("agent - kbase: agent has not kbase")
+		res := ""
+		return &res, nil
 	}
 	if msg == nil || *msg == "" {
 		return nil, fmt.Errorf("empty input message")
@@ -130,4 +138,19 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 		kDocs = append(kDocs, resDocs...)
 	}
 	return formatKBaseContent(kDocs, t.KBaseMaxLen), nil
+}
+
+func findJsonIdx(arr []byte) (int, int) {
+	l, r := 0, len(arr)-1
+	for ; l < len(arr); l++ {
+		if arr[l] == '{' {
+			break
+		}
+	}
+	for ; r >= 0; r-- {
+		if arr[r] == '}' {
+			break
+		}
+	}
+	return l, r
 }

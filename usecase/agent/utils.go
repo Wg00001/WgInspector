@@ -6,6 +6,7 @@ import (
 	"WgInspector/entities/config"
 	"WgInspector/usecase/agent/analyzer"
 	"WgInspector/utils"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/wg00001/wgo-sdk/wg"
@@ -38,13 +39,14 @@ type AnalysisReport struct {
 	ExtendSuggestion  []string          `json:"extend_suggestion"`
 }
 
-func buildAiAlertContent(t *AgentTask, msg string) *alerter2.Content {
+func buildAiAlertContent(t *AgentTask, res string) *alerter2.Content {
 	return &alerter2.Content{
+		Success:   true,
 		TimeStamp: time.Now(),
 		TaskName:  t.Identity(),
 		TaskID:    time.Now().Format("20060504_150201"),
 		InspName:  config.Identity{Name: logFilterString(t.LogFilter)},
-		Result:    []map[string]interface{}{{"message": msg}},
+		Result:    []map[string]any{map[string]any{"Result": res}},
 	}
 }
 
@@ -127,4 +129,64 @@ func formatKBaseContent(docs []agent.Document, maxLen int) *string {
 	}
 	s := buf.String()
 	return &s
+}
+func (r *AnalysisReport) String() string {
+	var buf strings.Builder
+
+	// 报告标题
+	buf.WriteString("数据库检查分析报告\n")
+	buf.WriteString("========================================\n\n")
+
+	// 检查项明细
+	if len(r.InspectLogAnalyze) > 0 {
+		buf.WriteString("检查项明细：\n\n")
+		for i, item := range r.InspectLogAnalyze {
+			// 条目头
+			buf.WriteString(fmt.Sprintf("检查项 %d: [%s] @ %s\n", i+1, item.Metrics, item.Belongs))
+
+			// 基本信息
+			buf.WriteString(fmt.Sprintf("  状态: %s\n", item.Status))
+			buf.WriteString(fmt.Sprintf("  趋势: %s\n", item.Trend))
+
+			// 问题描述（保留原始换行）
+			buf.WriteString("  问题描述:\n")
+			writeIndented(&buf, item.Problem, 4)
+
+			// 处理建议（保留原始换行）
+			buf.WriteString("  处理建议:\n")
+			writeIndented(&buf, item.Suggestion, 4)
+
+			// 分隔线（最后一条不显示）
+			if i < len(r.InspectLogAnalyze)-1 {
+				buf.WriteString("\n" + strings.Repeat("-", 50) + "\n\n")
+			}
+		}
+	} else {
+		buf.WriteString("未发现需要处理的检查项\n")
+	}
+
+	// 扩展建议
+	if len(r.ExtendSuggestion) > 0 {
+		buf.WriteString("\n扩展建议：\n\n")
+		for i, suggestion := range r.ExtendSuggestion {
+			buf.WriteString(fmt.Sprintf("%d. %s\n", i+1, strings.TrimSpace(suggestion)))
+			if i < len(r.ExtendSuggestion)-1 {
+				buf.WriteString("\n")
+			}
+		}
+	}
+
+	return buf.String()
+}
+
+// 带缩进的文本写入（保持原始换行）
+func writeIndented(buf *strings.Builder, text string, indent int) {
+	space := strings.Repeat(" ", indent)
+	scanner := bufio.NewScanner(strings.NewReader(text))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) != "" {
+			buf.WriteString(space + line + "\n")
+		}
+	}
 }

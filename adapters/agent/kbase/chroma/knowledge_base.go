@@ -67,8 +67,6 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 			return
 		}
 	case "openai":
-	default:
-		//agentConfig := config2.GetAgentConfig()
 		agentConfig, _ := config2.GetWithType[config.AgentConfig](config2.Key{
 			ConfigType: config.TypeAgent,
 			Identity:   k.Config.AgentID.Identity(),
@@ -86,6 +84,7 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 		if err != nil {
 			return k, fmt.Errorf("agent - kbase: chroma Error creating OpenAI embedding function: %v\n", err)
 		}
+	default:
 	}
 
 	return k, nil

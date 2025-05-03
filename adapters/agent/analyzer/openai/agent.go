@@ -18,7 +18,7 @@ import (
  */
 
 func init() {
-	ai2.RegisterDriver("openai", AnalyzerAgent{})
+	ai2.RegisterDriver("OpenApi", AnalyzerAgent{})
 }
 
 type AnalyzerAgent config.AgentConfig

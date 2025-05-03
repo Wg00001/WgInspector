@@ -29,6 +29,7 @@ const DefaultSystemMessage string = `
 	1. 数值型指标必须包含单位（如128MB）
 	2. 状态判断使用【正常】【需调整】两种分类
 	3. 变化趋势需基于时间序列数据判断
+	4. 仅输出json内容，完全不包含其他内容，不得使用md格式
 `
 const DefaultKBaseSystemMessage string = `
 请根据以下要求，从日志内容中提取信息并生成符合QueryData结构的JSON响应：

@@ -1,8 +1,7 @@
-package client
+package sqlite
 
 import (
 	"WgInspector/entities/client"
-	client2 "WgInspector/usecase/client"
 	"database/sql"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -18,14 +17,6 @@ const (
 
 type SQLiteAuth struct {
 	db *sql.DB
-}
-
-func init() {
-	auth, err := NewSQLiteAuth()
-	if err != nil {
-		panic(fmt.Sprintf("初始化 SQLite 认证失败: %v", err))
-	}
-	client2.UseAuthor(auth)
 }
 
 var _ client.Author = (*SQLiteAuth)(nil)

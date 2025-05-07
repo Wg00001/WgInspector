@@ -7,86 +7,96 @@ import (
 )
 
 var (
-	auther   client.Author
-	autherMu sync.RWMutex
+	drivers    = make(map[string]driver)
+	noticeDB   client.NoticeDB
+	author     client.Author
+	registed   bool = false
+	clientDBMu sync.RWMutex
 )
 
-// UseAuthor 设置认证器
-func UseAuthor(a client.Author) {
-	autherMu.Lock()
-	defer autherMu.Unlock()
-	auther = a
+type driver struct {
+	client.Author
+	client.NoticeDB
+}
+
+func RegisterClientDatabaseDriver(name string, authorDriver client.Author, noticeDriver client.NoticeDB) error {
+	clientDBMu.Lock()
+	defer clientDBMu.Unlock()
+	if drivers == nil {
+		return fmt.Errorf("ClientDatabase driver has already registed")
+	}
+	drivers[name] = driver{
+		Author:   authorDriver,
+		NoticeDB: noticeDriver,
+	}
+	return nil
+}
+
+func registerUseClientDatabase(name string) error {
+	clientDBMu.Lock()
+	defer clientDBMu.Unlock()
+	if registed {
+		return fmt.Errorf("notice driver has already registed")
+	}
+	if n, ok := drivers[name]; !ok {
+		return fmt.Errorf("notice driver [%s] not exist", name)
+	} else {
+		noticeDB = n.NoticeDB
+		author = n.Author
+		registed = true
+	}
+	return nil
 }
 
 // Auth 验证用户身份
 func Auth(username, password string) (client.User, error) {
-	autherMu.RLock()
-	defer autherMu.RUnlock()
-
-	if auther == nil {
+	if author == nil {
 		return client.User{}, fmt.Errorf("未设置认证器")
 	}
-	return auther.Auth(username, password)
+	return author.Auth(username, password)
 }
 
 // NewUser 创建新用户
 func NewUser(user client.User) error {
-	autherMu.RLock()
-	defer autherMu.RUnlock()
-
-	if auther == nil {
+	if author == nil {
 		return fmt.Errorf("未设置认证器")
 	}
-	return auther.NewUser(user)
+	return author.NewUser(user)
 }
 
 // DeleteUser 删除用户
 func DeleteUser(username, password string) error {
-	autherMu.RLock()
-	defer autherMu.RUnlock()
-
-	if auther == nil {
+	if author == nil {
 		return fmt.Errorf("未设置认证器")
 	}
-	return auther.DeleteUser(username, password)
+	return author.DeleteUser(username, password)
 }
 
 // UpdateUser 更新用户信息
 func UpdateUser(user client.User) error {
-	autherMu.RLock()
-	defer autherMu.RUnlock()
-
-	if auther == nil {
+	if author == nil {
 		return fmt.Errorf("未设置认证器")
 	}
-	return auther.UpdateUser(user)
-}
-
-var (
-	noticeDB client.NoticeDB
-	noticeMu sync.RWMutex
-)
-
-func UseNoticeDB(n client.NoticeDB) {
-	noticeMu.Lock()
-	defer noticeMu.Unlock()
-	noticeDB = n
+	return author.UpdateUser(user)
 }
 
 func GetNotice(page, pageSize int) ([]client.NoticeContent, error) {
-	noticeMu.RLock()
-	defer noticeMu.RUnlock()
+	if !registed {
+		return nil, fmt.Errorf("notice didn't registed")
+	}
 	return noticeDB.Get(page, pageSize)
 }
 
 func CreateNotice(ctn client.NoticeContent) error {
-	noticeMu.Lock()
-	defer noticeMu.Unlock()
+	if !registed {
+		return fmt.Errorf("notice didn't registed")
+	}
 	return noticeDB.Create(ctn)
 }
 
 func UpdateNotice(ctn client.NoticeContent) error {
-	noticeMu.Lock()
-	defer noticeMu.Unlock()
+	if !registed {
+		return fmt.Errorf("notice didn't registed")
+	}
 	return noticeDB.Update(ctn)
 }

@@ -12,10 +12,16 @@ import (
  * @date 2025/3/25
  */
 
+const defaultClientDB = "postgres"
+
 func Init(cfg config.InitConfig) error {
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	init, err := aclient.Init(cfg.ClientURL)
+	if err != nil {
+		return err
+	}
+	err = registerUseClientDatabase(cfg.Option.GetOrDefault("client_db_driver", defaultClientDB))
 	if err != nil {
 		return err
 	}

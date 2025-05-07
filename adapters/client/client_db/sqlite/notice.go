@@ -1,8 +1,7 @@
-package client
+package sqlite
 
 import (
 	"WgInspector/entities/client"
-	client2 "WgInspector/usecase/client"
 	"database/sql"
 	"fmt"
 	"os"
@@ -20,13 +19,6 @@ type SQLiteNoticeDB struct {
 	db *sql.DB
 }
 
-func init() {
-	auth, err := NewSQLiteNoticeDB()
-	if err != nil {
-		panic(fmt.Sprintf("初始化 SQLite KbaseNotice失败: %v", err))
-	}
-	client2.UseNoticeDB(auth)
-}
 func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
 	const (
 		filePath = "./app/notice.db"

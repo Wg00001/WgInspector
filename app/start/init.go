@@ -26,7 +26,8 @@ import (
 	_ "WgInspector/adapters/alerter/default"
 	_ "WgInspector/adapters/alerter/feishu"
 
-	_ "WgInspector/adapters/client"
+	_ "WgInspector/adapters/client/client_db/pgsql"
+	_ "WgInspector/adapters/client/client_db/sqlite"
 	_ "WgInspector/adapters/client/websocket"
 
 	_ "WgInspector/adapters/config"

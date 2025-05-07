@@ -24,7 +24,6 @@ import (
 	_ "WgInspector/adapters/agent/kbase/chroma"
 
 	_ "WgInspector/adapters/alerter/default"
-	_ "WgInspector/adapters/alerter/empty"
 	_ "WgInspector/adapters/alerter/feishu"
 
 	_ "WgInspector/adapters/client"

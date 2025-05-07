@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/alerter"
 	"WgInspector/entities/config"
 	"fmt"
+	"github.com/wg00001/wgo-sdk/wg"
 	"sync"
 )
 
@@ -50,4 +51,10 @@ func GetDriver(name string) (alerter.Alerter, error) {
 		return nil, fmt.Errorf("alerter: get driver fail %s\n", name)
 	}
 	return res, nil
+}
+
+func GetDriverList() []string {
+	mu.RLock()
+	defer mu.RUnlock()
+	return wg.MapToKeySlice(drivers)
 }

@@ -53,3 +53,7 @@ func CloseAll() error {
 	})
 	return err
 }
+
+func GetDriverList() []string {
+	return []string{"postgres", "mysql"}
+}

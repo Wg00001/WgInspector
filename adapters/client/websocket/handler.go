@@ -4,8 +4,13 @@ import (
 	"WgInspector/entities/client"
 	"WgInspector/entities/config"
 	"WgInspector/usecase/agent"
+	"WgInspector/usecase/agent/analyzer"
+	"WgInspector/usecase/agent/kbase"
+	"WgInspector/usecase/alerter"
 	client2 "WgInspector/usecase/client"
 	config2 "WgInspector/usecase/config"
+	"WgInspector/usecase/db"
+	"WgInspector/usecase/logger"
 	"WgInspector/usecase/task"
 	"WgInspector/usecase/task/cron"
 	"context"
@@ -36,6 +41,7 @@ const (
 	clientTaskClose        = "task_close"
 	clientTaskDo           = "task_do"
 	clientRefreshCron      = "task_cron_refresh"
+	clientGetDriverList    = "driver_list"
 )
 
 type MsgMeta struct {
@@ -135,6 +141,8 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 				logErr(clientTaskDo, handleTaskDo(conn, msg))
 			case clientRefreshCron:
 				logErr(clientRefreshCron, handleRefreshCron(conn, msg))
+			case clientGetDriverList:
+				logErr(clientGetDriverList, handleDriverList(conn, msg))
 			default:
 				log.Printf("client websocket: 未知操作类型: %s\n", msg.Action)
 			}
@@ -434,4 +442,27 @@ func handleRefreshCron(conn *websocket.Conn, msg RequestMsg) error {
 	}
 	cron.Start()
 	return response(conn, msg.MsgMeta, "success")
+}
+
+func handleDriverList(conn *websocket.Conn, msg RequestMsg) error {
+	res := func() []string {
+		switch msg.ConfigType {
+		case config.TypeAlert:
+			return alerter.GetDriverList()
+		case config.TypeAgent:
+			return analyzer.GetDriverList()
+		case config.TypeKBase:
+			return kbase.GetDriverList()
+		case config.TypeLog:
+			return logger.GetDriverList()
+		case config.TypeDB:
+			return db.GetDriverList()
+		default:
+			return nil
+		}
+	}()
+	if res == nil {
+		return fmt.Errorf("type [%s] have no driver", msg.ConfigType)
+	}
+	return response(conn, msg.MsgMeta, res)
 }

@@ -4,6 +4,7 @@ import (
 	"WgInspector/entities/agent"
 	"WgInspector/entities/config"
 	"fmt"
+	"github.com/wg00001/wgo-sdk/wg"
 	"sync"
 )
 
@@ -50,4 +51,10 @@ func GetDriver(name string) (agent.KnowledgeBase, error) {
 		return nil, fmt.Errorf("agent: get kbase driver fail - %s\n", name)
 	}
 	return res, nil
+}
+
+func GetDriverList() []string {
+	muDriver.RLock()
+	defer muDriver.RUnlock()
+	return wg.MapToKeySlice(drivers)
 }

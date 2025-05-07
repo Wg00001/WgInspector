@@ -14,7 +14,7 @@ import (
 
 func init() {
 	ai2.RegisterDriver("default", AnalyzerDefault{})
-	ai2.RegisterDriver("", AnalyzerDefault{})
+	//ai2.RegisterDriver("", AnalyzerDefault{})
 }
 
 type AnalyzerDefault struct {

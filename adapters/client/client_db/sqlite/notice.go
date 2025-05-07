@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"WgInspector/entities/client"
+	"WgInspector/utils"
 	"database/sql"
 	"fmt"
 	"os"
@@ -19,18 +20,16 @@ type SQLiteNoticeDB struct {
 	db *sql.DB
 }
 
-func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
-	const (
-		filePath = "./app/notice.db"
-		dsn      = "file:" + filePath
-	)
+func (s *SQLiteNoticeDB) Init(option utils.Option) error {
+	filePath := option.GetOrDefault("file_path", "./app/notice.db")
+	dsn := option.GetOrDefault("dsn", "file:"+filePath)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return nil, fmt.Errorf("创建数据库目录失败: %w", err)
+		return fmt.Errorf("创建数据库目录失败: %w", err)
 	}
 
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("打开数据库失败: %w", err)
+		return fmt.Errorf("打开数据库失败: %w", err)
 	}
 
 	// 更新后的表结构
@@ -48,11 +47,12 @@ func NewSQLiteNoticeDB() (*SQLiteNoticeDB, error) {
 
 	if _, err := db.Exec(createTableSQL); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("创建表失败: %w", err)
+		return fmt.Errorf("创建表失败: %w", err)
 	}
 
 	db.SetMaxOpenConns(1)
-	return &SQLiteNoticeDB{db: db}, nil
+	s.db = db
+	return nil
 }
 
 func (s *SQLiteNoticeDB) Get(page, pageSize int) ([]client.NoticeContent, error) {

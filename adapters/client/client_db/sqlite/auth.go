@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"WgInspector/entities/client"
+	"WgInspector/utils"
 	"database/sql"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -21,20 +22,19 @@ type SQLiteAuth struct {
 
 var _ client.Author = (*SQLiteAuth)(nil)
 
-func NewSQLiteAuth() (*SQLiteAuth, error) {
+func (a *SQLiteAuth) Init(option utils.Option) error {
 	// 分离文件路径和 DSN
-	filePath := "./app/auth.db" // 实际文件路径
-	dsn := "file:" + filePath   // modernc 要求的 DSN 格式
-
+	filePath := option.GetOrDefault("file_path", "./app/notice.db")
+	dsn := option.GetOrDefault("dsn", "file:"+filePath)
 	// 确保数据库目录存在（基于实际文件路径）
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return nil, fmt.Errorf("创建数据库目录失败: %w", err)
+		return fmt.Errorf("创建数据库目录失败: %w", err)
 	}
 
 	// 打开/创建数据库（使用 DSN）
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("打开数据库失败: %w", err)
+		return fmt.Errorf("打开数据库失败: %w", err)
 	}
 
 	// 创建用户表（IF NOT EXISTS 确保幂等性）
@@ -47,18 +47,17 @@ func NewSQLiteAuth() (*SQLiteAuth, error) {
     `)
 	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("创建用户表失败: %w", err)
+		return fmt.Errorf("创建用户表失败: %w", err)
 	}
 
-	auth := &SQLiteAuth{db: db}
+	a.db = db
 
 	//没默认用户时会新建默认用户
-	auth.NewUser(client.User{
+	return a.NewUser(client.User{
 		UserName: defaultUsername,
 		Password: defaultPassword,
 		Level:    client.AuthLevelAdmin,
 	})
-	return auth, nil
 }
 
 func (a *SQLiteAuth) Close() error {

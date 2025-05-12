@@ -1,6 +1,7 @@
 package client
 
 import (
+	"WgInspector/utils"
 	"context"
 	"time"
 )
@@ -18,6 +19,7 @@ const (
 
 // 身份验证
 type Author interface {
+	Init(utils.Option) error
 	Auth(username, password string) (User, error)
 	NewUser(User) error
 	DeleteUser(username, password string) error

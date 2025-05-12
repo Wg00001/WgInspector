@@ -32,13 +32,18 @@ func main() {
 	//	log.Fatal(http.ListenAndServe(":6060", nil))
 	//}()
 
-	file, err := os.ReadFile(configPath)
-	if err != nil {
-		panic(err)
-	}
-	err = yaml.Unmarshal(file, &global)
-	if err != nil {
-		panic(err)
+	// file, err := os.ReadFile(configPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = yaml.Unmarshal(file, &global)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	global = config.InitConfig{
+		BaseDSN:   os.Getenv("BASE_DSN"),
+		ClientURL: os.Getenv("CLIENT_URL"),
 	}
 
 	start.Init(global)

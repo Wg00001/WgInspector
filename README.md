@@ -12,3 +12,22 @@ v2：
 - 所有支持的驱动应该在init时注册，但是具体初始化应该在第一次调用时才完成（惰性初始化）
 
 
+
+```cmd
+docker build -t wginspector:latest .
+
+docker run -d -p 9999:9999 --name wginspector wginspector:latest
+
+docker run wginspector
+
+docker network create WgInspectorNetwork
+```
+
+
+
+~~~cmd
+docker-compose up --build
+docker-compose up
+docker-compose down
+~~~
+

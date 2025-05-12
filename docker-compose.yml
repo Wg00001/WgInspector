@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "03719"
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" 
+    healthcheck:
+        test: ["CMD","pg_isready"]
+        interval: 10s
+        timeout: 5s
+    networks:
+      - app-network
+
+  backend:
+    image: wginspector:latest
+    container_name: insp-backend
+    ports:
+      - "9999:9999" 
+    depends_on:
+      - postgres
+    environment:
+      BASE_DSN: "host=postgres port=5432 user=postgres dbname=postgres password=03719 sslmode=disable"
+      CLIENT_URL: "ws://insp-client:9999/"
+    networks:
+      - app-network
+
+  frontend:
+    image: insp-client:latest
+    container_name: insp-client
+    ports:
+      - "3000:3000" 
+    depends_on:
+      - backend 
+    environment:
+      REACT_APP_GRAFANA_URL: http://localhost:3001 
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: my_grafana_service
+    platform: linux/amd64
+    ports:
+      - "3001:3000" 
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+networks:
+  app-network: 
+    driver: bridge

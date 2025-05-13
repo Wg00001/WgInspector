@@ -125,7 +125,7 @@ func (t *AgentTask) KBaseSearch(msg *string) (*string, error) {
 
 	var kDocs []agent.Document
 	for _, kb := range t.KBase {
-		kbaseObj := kbase.Get(kb.Identity())
+		kbaseObj := kbase.Get(kb.Identity)
 		if kbaseObj == nil {
 			return nil, fmt.Errorf("agent task : kbase not exist")
 		}

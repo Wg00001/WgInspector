@@ -59,11 +59,11 @@ type TaskConfig struct {
 	Identity
 	Cron         CronTab
 	AllInspector bool
-	LogID        IdKey      `gorm:"type:jsonb"`
-	AlertID      IdKey      `gorm:"type:jsonb"`
-	TargetDB     IdKeyArray `gorm:"type:jsonb"`
-	Todo         IdKeyArray `gorm:"type:jsonb"`
-	NotTodo      IdKeyArray `gorm:"type:jsonb"`
+	LogID        IdKey        `gorm:"type:jsonb"`
+	AlertID      IdKey        `gorm:"type:jsonb"`
+	TargetDB     []DBConfig   `gorm:"many2many:task_config_target_dbs;"`
+	Todo         []InspConfig `gorm:"many2many:task_config_todos;"`
+	NotTodo      []InspConfig `gorm:"many2many:task_config_not_todos;"`
 }
 
 type CronTab string
@@ -84,12 +84,12 @@ type AgentConfig struct {
 type AgentTaskConfig struct {
 	Identity
 	Cron          CronTab
-	LogFilter     LogFilter  `gorm:"type:jsonb"`
-	LogID         IdKey      `gorm:"type:jsonb"`
-	AlertID       IdKey      `gorm:"type:jsonb"`
-	AgentID       IdKey      `gorm:"type:jsonb"`
-	KbaseAgentID  IdKey      `gorm:"type:jsonb"`
-	KBase         IdKeyArray `gorm:"type:jsonb"`
+	LogFilter     LogFilter             `gorm:"type:jsonb"`
+	LogID         IdKey                 `gorm:"type:jsonb"`
+	AlertID       IdKey                 `gorm:"type:jsonb"`
+	AgentID       IdKey                 `gorm:"type:jsonb"`
+	KbaseAgentID  IdKey                 `gorm:"type:jsonb"`
+	KBase         []KnowledgeBaseConfig `gorm:"many2many:agent_task_config_kbases;"`
 	KBaseResults  int
 	KBaseMaxLen   int
 	SystemMessage string

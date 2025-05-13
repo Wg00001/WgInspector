@@ -37,6 +37,7 @@ func main() {
 	global = config.InitConfig{
 		BaseDSN:   os.Getenv("BASE_DSN"),
 		ClientURL: os.Getenv("CLIENT_URL"),
+		Option:    map[string]string{},
 	}
 
 	if global.ClientURL == "" {

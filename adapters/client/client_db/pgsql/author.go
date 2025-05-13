@@ -103,7 +103,7 @@ func (p *PgSQLAuth) Close() error {
 func (p *PgSQLAuth) Auth(username, password string) (client.User, error) {
 	var hashedPassword string
 	var level int
-
+	fmt.Println(username, password)
 	err := p.db.QueryRow("SELECT password, level FROM users WHERE username = $1 AND deleted_at IS NULL", username).
 		Scan(&hashedPassword, &level)
 	if err != nil {

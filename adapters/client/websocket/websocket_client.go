@@ -162,6 +162,7 @@ func (c *ClientWebSocket) Init(urlStr string) (_ client.Client, err error) {
 
 			// 验证用户身份
 			user, err := client2.Auth(username, password)
+			fmt.Println(err)
 			if err != nil {
 				log.Printf("认证失败: %v", err)
 				conn.WriteJSON(map[string]interface{}{

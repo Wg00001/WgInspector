@@ -3,6 +3,7 @@ package client
 import (
 	"WgInspector/entities/client"
 	"WgInspector/entities/config"
+	"WgInspector/utils"
 	"sync"
 )
 
@@ -12,8 +13,6 @@ import (
  * @date 2025/3/25
  */
 
-const defaultClientDB = "postgres"
-
 func Init(cfg config.InitConfig) error {
 	driversMu.Lock()
 	defer driversMu.Unlock()
@@ -21,7 +20,12 @@ func Init(cfg config.InitConfig) error {
 	if err != nil {
 		return err
 	}
-	err = registerUseClientDatabase(cfg.Option.GetOrDefault("client_db_driver", defaultClientDB))
+	cfg.Option.With(func(opt utils.Option) {
+		if _, ok := opt["dsn"]; !ok {
+			opt["dsn"] = cfg.BaseDSN
+		}
+	})
+	err = registerUseClientDatabase(cfg.Option)
 	if err != nil {
 		return err
 	}

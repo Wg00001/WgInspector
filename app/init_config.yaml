@@ -1,4 +1,4 @@
-base_dsn: "host=postgres port=5432 user=root dbname=postgres password=03719 sslmode=disable"
+base_dsn: "host=localhost port=5432 user=postgres dbname=postgres password=03719 sslmode=disable"
 client_url: "ws://0.0.0.0:9999/"
 client_driver: websocket
 option:

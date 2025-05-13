@@ -59,6 +59,7 @@ type NoticeContent struct {
 }
 
 type NoticeDB interface {
+	Init(utils.Option) error
 	Get(page, pageSize int) ([]NoticeContent, error)
 	Create(NoticeContent) error
 	Update(NoticeContent) error

@@ -2,6 +2,7 @@ package client
 
 import (
 	"WgInspector/entities/client"
+	"WgInspector/utils"
 	"fmt"
 	"sync"
 )
@@ -32,17 +33,24 @@ func RegisterClientDatabaseDriver(name string, authorDriver client.Author, notic
 	return nil
 }
 
-func registerUseClientDatabase(name string) error {
+func registerUseClientDatabase(option utils.Option) error {
 	clientDBMu.Lock()
 	defer clientDBMu.Unlock()
 	if registed {
 		return fmt.Errorf("notice driver has already registed")
 	}
-	if n, ok := drivers[name]; !ok {
-		return fmt.Errorf("notice driver [%s] not exist", name)
+	d := option.GetOrDefault("client_db_driver", "postgres")
+	if n, ok := drivers[d]; !ok {
+		return fmt.Errorf("notice driver [%s] not exist", d)
 	} else {
 		noticeDB = n.NoticeDB
 		author = n.Author
+		if err := author.Init(option); err != nil {
+			return err
+		}
+		if err := noticeDB.Init(option); err != nil {
+			return err
+		}
 		registed = true
 	}
 	return nil

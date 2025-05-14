@@ -5,7 +5,6 @@ import (
 	"WgInspector/entities/config"
 	"WgInspector/usecase/agent/kbase"
 	config2 "WgInspector/usecase/config"
-	"WgInspector/utils"
 	"context"
 	"fmt"
 	chromago "github.com/amikos-tech/chroma-go"
@@ -25,16 +24,12 @@ func init() {
 }
 
 type KBaseChroma struct {
-	Config           config.KnowledgeBaseConfig
-	Path             string
-	Collection       string //chroma的collection类似于库
-	Tenant           string //chroma需要指定租户
-	Database         string
-	EmbeddingDriver  string
-	EmbeddingBaseUrl string
-	EmbeddingModel   string
-	EmbeddingApikey  string
-	Efunc            types.EmbeddingFunction //进行向量计算的函数
+	Config     config.KnowledgeBaseConfig
+	Path       string
+	Collection string //chroma的collection类似于库
+	Tenant     string //chroma需要指定租户
+	Database   string
+	Efunc      types.EmbeddingFunction //进行向量计算的函数
 }
 
 var _ agent.KnowledgeBase = (*KBaseChroma)(nil)
@@ -46,31 +41,27 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 		}
 	}()
 	k.Config = cfg
-	value := utils.UseMap(cfg.Option)
-	k.Path = value.GetString("path")
-	k.Collection = value.GetString("collection")
-	k.Tenant = value.GetString("tenant")
-	k.Database = value.GetString("database")
-	// 获取 embedding 子 map
-	embedding := value.GetMap("embedding")
-	k.EmbeddingBaseUrl = embedding.GetString("baseurl")
-	k.EmbeddingModel = embedding.GetString("model")
-	k.EmbeddingApikey = embedding.GetString("apikey")
-	k.EmbeddingDriver = embedding.GetString("driver")
+	k.Path = cfg.Option.GetOrDefault("path", "http://localhost:8000")
+	k.Collection = cfg.Option.GetOrDefault("collection", "default")
+	k.Tenant = cfg.Option.GetOrDefault("tenant", "default")
+	k.Database = cfg.Option.GetOrDefault("database", "default")
 
-	switch k.EmbeddingDriver {
+	agentConfig, err := config2.GetWithType[config.AgentConfig](config2.Key{
+		ConfigType: config.TypeAgent,
+		Identity:   k.Config.AgentID.Identity(),
+	})
+	if err != nil {
+		return
+	}
+	switch agentConfig.Driver {
 	case "ollama":
 		k.Efunc, err = ollama.NewOllamaEmbeddingFunction(
-			ollama.WithBaseURL(k.EmbeddingBaseUrl),
-			ollama.WithModel(k.EmbeddingModel))
+			ollama.WithBaseURL(agentConfig.Url),
+			ollama.WithModel(agentConfig.Model))
 		if err != nil {
 			return
 		}
 	case "openai":
-		agentConfig, _ := config2.GetWithType[config.AgentConfig](config2.Key{
-			ConfigType: config.TypeAgent,
-			Identity:   k.Config.AgentID.Identity(),
-		})
 		k.Efunc, err = openai.NewOpenAIEmbeddingFunction(
 			agentConfig.ApiKey,
 			func(c *openai.OpenAIClient) error {

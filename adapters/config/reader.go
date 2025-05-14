@@ -59,13 +59,13 @@ func (c ConfigReaderPostgre) ReadConfig(configTypes ...string) (config.MetaConfi
 			return c.Table(config.TypeDB).Select("*").Find(&meta.DBs).Error
 		},
 		config.TypeTask: func() error {
-			return c.Table(config.TypeTask).Select("*").Find(&meta.Tasks).Error
+			return c.Table(config.TypeTask).Preload("TargetDB").Preload("Todo").Preload("NotTodo").Select("*").Find(&meta.Tasks).Error
 		},
 		config.TypeKBase: func() error {
 			return c.Table(config.TypeKBase).Select("*").Find(&meta.KBases).Error
 		},
 		config.TypeAgentTask: func() error {
-			return c.Table(config.TypeAgentTask).Select("*").Find(&meta.AgentTasks).Error
+			return c.Table(config.TypeAgentTask).Preload("KBase").Select("*").Find(&meta.AgentTasks).Error
 		},
 		config.TypeLog: func() error {
 			return c.Table(config.TypeLog).Select("*").Find(&meta.Logs).Error

@@ -57,13 +57,13 @@ type AlertConfig struct {
 
 type TaskConfig struct {
 	Identity
-	Cron         CronTab
-	AllInspector bool
-	LogID        IdKey        `gorm:"type:jsonb"`
-	AlertID      IdKey        `gorm:"type:jsonb"`
-	TargetDB     []DBConfig   `gorm:"many2many:task_config_target_dbs;"`
-	Todo         []InspConfig `gorm:"many2many:task_config_todos;"`
-	NotTodo      []InspConfig `gorm:"many2many:task_config_not_todos;"`
+	Cron         CronTab      `json:"Cron"`
+	AllInspector bool         `json:"AllInspector,omitempty"`
+	LogID        IdKey        `gorm:"type:jsonb" json:"TargetLogID,omitempty"`
+	AlertID      IdKey        `gorm:"type:jsonb" json:"TargetAlertID,omitempty"`
+	TargetDB     []DBConfig   `gorm:"many2many:task_config_target_dbs;" json:"TargetDB,omitempty"`
+	Todo         []InspConfig `gorm:"many2many:task_config_todos;" json:"Todo,omitempty"`
+	NotTodo      []InspConfig `gorm:"many2many:task_config_not_todos;" json:"NotTodo,omitempty"`
 }
 
 type CronTab string
@@ -108,6 +108,6 @@ type LogFilter struct {
 type KnowledgeBaseConfig struct {
 	Identity
 	Driver  string
-	AgentID IdKey                  `gorm:"type:jsonb"`
-	Option  map[string]interface{} `gorm:"type:jsonb"`
+	AgentID IdKey        `gorm:"type:jsonb"`
+	Option  utils.Option `gorm:"type:jsonb"`
 }

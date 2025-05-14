@@ -71,5 +71,5 @@ func (m Map) GetMap(key string) Map {
 	if child, ok := v.(map[string]interface{}); ok {
 		return child
 	}
-	return nil
+	return make(Map)
 }

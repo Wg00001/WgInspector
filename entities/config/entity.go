@@ -59,11 +59,11 @@ type TaskConfig struct {
 	Identity
 	Cron         CronTab      `json:"Cron"`
 	AllInspector bool         `json:"AllInspector,omitempty"`
-	LogID        IdKey        `gorm:"type:jsonb" json:"TargetLogID,omitempty"`
-	AlertID      IdKey        `gorm:"type:jsonb" json:"TargetAlertID,omitempty"`
-	TargetDB     []DBConfig   `gorm:"many2many:task_config_target_dbs;" json:"TargetDB,omitempty"`
-	Todo         []InspConfig `gorm:"many2many:task_config_todos;" json:"Todo,omitempty"`
-	NotTodo      []InspConfig `gorm:"many2many:task_config_not_todos;" json:"NotTodo,omitempty"`
+	LogID        IdKey        `gorm:"type:jsonb" json:"LogID"`
+	AlertID      IdKey        `gorm:"type:jsonb" json:"AlertID"`
+	TargetDB     []DBConfig   `gorm:"many2many:task_config_target_dbs;" json:"TargetDB"`
+	Todo         []InspConfig `gorm:"many2many:task_config_todos;" json:"Todo"`
+	NotTodo      []InspConfig `gorm:"many2many:task_config_not_todos;" json:"NotTodo"`
 }
 
 type CronTab string

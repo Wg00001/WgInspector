@@ -154,6 +154,39 @@ func (c ConfigReaderPostgre) DeleteConfig(data config.Id) error {
 	if err != nil {
 		return err
 	}
+
+	// For types with many2many relationships, clear associations first
+	switch data.(type) {
+	case config.TaskConfig, *config.TaskConfig:
+		var task config.TaskConfig
+		if err := c.DB.Preload("TargetDB").Preload("Todo").Preload("NotTodo").First(&task, data.GetIdentity().ID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound { // If record not found, it might have been already deleted or associations cleared
+				return nil
+			}
+			return fmt.Errorf("failed to load task config for deletion: %w", err)
+		}
+		if err := c.DB.Model(&task).Association("TargetDB").Clear(); err != nil {
+			return fmt.Errorf("failed to clear TargetDB association for TaskConfig: %w", err)
+		}
+		if err := c.DB.Model(&task).Association("Todo").Clear(); err != nil {
+			return fmt.Errorf("failed to clear Todo association for TaskConfig: %w", err)
+		}
+		if err := c.DB.Model(&task).Association("NotTodo").Clear(); err != nil {
+			return fmt.Errorf("failed to clear NotTodo association for TaskConfig: %w", err)
+		}
+	case config.AgentTaskConfig, *config.AgentTaskConfig:
+		var agentTask config.AgentTaskConfig
+		if err := c.DB.Preload("KBase").First(&agentTask, data.GetIdentity().ID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return nil
+			}
+			return fmt.Errorf("failed to load agent task config for deletion: %w", err)
+		}
+		if err := c.DB.Model(&agentTask).Association("KBase").Clear(); err != nil {
+			return fmt.Errorf("failed to clear KBase association for AgentTaskConfig: %w", err)
+		}
+	}
+
 	return c.Table(dataType).
 		Where("id = ?", data.GetIdentity().ID).
 		Delete(data).

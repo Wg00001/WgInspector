@@ -22,14 +22,14 @@ type Logger interface {
 }
 
 type LogContent struct {
-	Timestamp   time.Time
+	Timestamp   time.Time `gorm:"column:timestamp"`
 	TaskName    string
 	DBName      string
 	InspectName string
 	TaskID      string //task批次编号
-	Result      []byte `gorm:"type:jsonb"`
+	Result      []byte `gorm:"type:jsonb;column:result"`
 }
 
-func (receiver LogContent) TableName() string {
+func (LogContent) TableName() string {
 	return "inspect_log"
 }

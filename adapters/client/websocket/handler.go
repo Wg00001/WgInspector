@@ -111,7 +111,9 @@ func (c *ClientWebSocket) handleWebSocketConnection(conn *websocket.Conn, user c
 			case clientActionGet:
 				if msg.ConfigType == "Meta" || msg.ConfigType == "" {
 					config2.RLock()
-					logErr(clientActionGet, response(conn, msg.MsgMeta, config2.Meta))
+					temp := config2.Meta
+					temp.InspNodes = config2.GetInspRoot()
+					logErr(clientActionGet, response(conn, msg.MsgMeta, temp))
 					config2.RUnlock()
 				} else {
 					logErr(clientActionGet, handleWithAuth(getHandler, response, 0))

@@ -66,7 +66,9 @@ func (l LogPostgre) Log(res logger.LogContent) error {
 	if l.conn == nil {
 		return fmt.Errorf("Database connection not initialized")
 	}
-
+	if res.Result == nil {
+		res.Result = []byte{}
+	}
 	// 插入记录
 	result := l.conn.Create(&res)
 	if result.Error != nil {

@@ -34,8 +34,3 @@ func (c Content) AddWhen(when string) Content {
 	c.AlertWhen = when
 	return c
 }
-
-const (
-	ContentTypeInspTask = "InspTask"
-	ContentTypeError    = "Error"
-)

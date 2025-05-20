@@ -62,7 +62,7 @@ func Init(initConfig config.InitConfig) {
 	}
 	err = InitDB()
 	if err != nil {
-		fmt.Printf("db init fail: %s\n", err)
+		log.Printf("db init fail: %s\n", err)
 	}
 
 	defer func() {

@@ -17,7 +17,7 @@ import (
 var (
 	// Meta : 对pgsql中数据的缓存
 	Meta      = config.MetaConfig{}
-	index     = make(map[Key]*config.Id)
+	index     = make(map[Key]*config.Id) //存储配置文件的指针，get时返回的是解引用后的实体
 	inspIndex *config.InspIndex
 	mu        sync.RWMutex
 	appendMU  sync.Mutex
@@ -50,6 +50,12 @@ func GetInsp(id config.Identity, ids ...config.Identity) []*config.InspConfig {
 	return inspIndex.Get(id, ids...)
 }
 
+func GetInspRoot() []config.InspConfig {
+	mu.RLock()
+	defer mu.RUnlock()
+	return inspIndex.GetForestRootList()
+}
+
 func SetInitConfig(initConfig config.InitConfig) {
 	globalInitConfig = initConfig
 }
@@ -77,7 +83,7 @@ func GetMetaItem(configType string) (any, error) {
 	case config.TypeKBase:
 		return sliceCopy(Meta.KBases), nil
 	case config.TypeInspector:
-		return sliceCopy(Meta.InspNodes), nil
+		return GetInspRoot(), nil
 	default:
 		return nil, fmt.Errorf("config-center: get meta item fail, type: %s", configType)
 	}
@@ -199,6 +205,12 @@ func Save(key Key, val config.Id) (err error) {
 	if err != nil {
 		return err
 	}
+	if key.ConfigType == config.TypeInspector {
+		err = updateConfigRoots(val)
+		if err != nil {
+			return err
+		}
+	}
 	return syncWithDB(key.ConfigType)
 }
 
@@ -210,6 +222,7 @@ func Del(key Key, val config.Id) error {
 		return err
 	}
 	delete(index, key)
+	inspIndex = config.NewInspIndex(Meta.InspNodes)
 	return syncWithDB(key.ConfigType)
 }
 
@@ -253,4 +266,12 @@ func sliceCopy[T config.Id](arr []T) any {
 	res := make([]T, len(arr))
 	copy(res, arr)
 	return res
+}
+
+func updateConfigRoots(val config.Id) error {
+	v, ok := val.(config.InspConfig)
+	if !ok {
+		inspIndex = config.NewInspIndex(Meta.InspNodes)
+	}
+	return inspIndex.Put(v)
 }

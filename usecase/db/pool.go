@@ -3,6 +3,7 @@ package db
 import (
 	"WgInspector/entities/config"
 	"WgInspector/entities/db"
+	config2 "WgInspector/usecase/config"
 	"fmt"
 	"sync"
 )
@@ -23,11 +24,43 @@ func Register(sqlDB *db.SqlDB) error {
 	return nil
 }
 
-func Get(id config.Identity) *db.SqlDB {
-	if val, ok := pool.Load(id); ok {
-		return val.(*db.SqlDB)
+func Get(id config.Identity) (*db.SqlDB, error) {
+	dbc, err := config2.Get(config2.Key{
+		ConfigType: config.TypeDB,
+		Identity:   id,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return &db.SqlDB{Err: fmt.Errorf("db config is nil")}
+	dbconfig, ok := dbc.(config.DBConfig)
+	if !ok {
+		return nil, fmt.Errorf("db config is not config.DBConfig")
+	}
+	return Build(dbconfig)
+}
+
+func GetList(ids []config.Identity) ([]*db.SqlDB, error) {
+	res := make([]*db.SqlDB, 0, len(ids))
+	for _, id := range ids {
+		dbc, err := Get(id)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, dbc)
+	}
+	return res, nil
+}
+
+func ConnList(configs []config.DBConfig) ([]*db.SqlDB, error) {
+	res := make([]*db.SqlDB, 0, len(configs))
+	for _, config := range configs {
+		build, err := Build(config)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, build)
+	}
+	return res, nil
 }
 
 func Close(arg config.Identity) error {

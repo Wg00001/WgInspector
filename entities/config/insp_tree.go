@@ -58,27 +58,19 @@ func NewInspIndex(nodes []InspConfig) *InspIndex {
 
 	// 第一阶段：填充所有节点到data
 	for i := range nodes {
-		node := &nodes[i]
-		idKey := node.IdKey()
-		idx.data[idKey] = node
+		idx.data[nodes[i].IdKey()] = &nodes[i]
 	}
 
 	// 第二阶段：建立父子关系并识别根节点
 	for _, node := range idx.data {
-		parentKey := node.Parent
-
-		// 判断是否为根节点
-		if node.Parent.ID == 0 || idx.data[parentKey] == nil {
+		if node.Parent.ID == 0 { //父节点进森林
 			idx.forest[node.IdKey()] = node
-			continue
+		} else if parent, ok := idx.data[node.Parent]; ok { // 子节点建立父子关系
+			if parent.Children == nil {
+				parent.Children = make(map[IdKey]*InspConfig)
+			}
+			parent.Children[node.IdKey()] = node
 		}
-
-		// 建立父子关系
-		parent := idx.data[parentKey]
-		if parent.Children == nil {
-			parent.Children = make(map[IdKey]*InspConfig)
-		}
-		parent.Children[node.IdKey()] = node
 	}
 
 	return idx
@@ -131,8 +123,40 @@ func (idx *InspIndex) Get(baseID Identity, ids ...Identity) []*InspConfig {
 			queue = append(queue, child)
 		}
 	}
-
 	return result
+}
+
+func (idx *InspIndex) Put(config InspConfig) error {
+	if idx == nil {
+		return fmt.Errorf("InspIndex is nil")
+	}
+	if idx.forest == nil {
+		idx.forest = make(map[IdKey]*InspConfig)
+	}
+	if _, ok := idx.data[config.IdKey()]; ok {
+		return fmt.Errorf("InspConfig is already exists")
+	}
+	if config.Parent.ID != 0 {
+		if _, ok := idx.data[config.Parent]; !ok {
+			return fmt.Errorf("InspConfig parent not exists")
+		}
+	}
+	idx.data[config.Identity.IdKey()] = &config
+	if config.Parent.ID != 0 {
+		if idx.data[config.Parent].Children == nil {
+			idx.data[config.Parent].Children = make(map[IdKey]*InspConfig)
+		}
+		idx.data[config.Parent].Children[config.IdKey()] = &config
+	}
+	return nil
+}
+
+func (idx *InspIndex) GetForestRootList() []InspConfig {
+	res := make([]InspConfig, 0, len(idx.forest))
+	for _, node := range idx.forest {
+		res = append(res, *node)
+	}
+	return res
 }
 
 // 辅助函数检查键是否存在

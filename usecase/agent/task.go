@@ -71,33 +71,38 @@ func (t *AgentTask) Do(context.Context) error {
 		return err
 	}
 	res, err := a.Analyze(content)
-	resb := []byte(res)
+	resp := []byte(res)
 	if err != nil {
 		return err
 	}
 
 	//5.1 格式验证
 	var report AnalysisReport
-	l, r := findJsonIdx(resb)
+	l, r := findJsonIdx(resp)
 	if l >= r {
 		return fmt.Errorf("agent_task analyze result format fail")
 	}
-	err = json.Unmarshal(resb[l:r+1], &report)
+	err = json.Unmarshal(resp[l:r+1], &report)
 	if err != nil {
 		return err
 	}
 	reportStr := report.String()
 
 	//6.1 自学习（将巡检结果发进知识库以及发给用户确认）
-	go client.Notice(client2.NoticeContent{
-		Content:     reportStr,
-		Time:        time.Now(),
-		ConfirmStat: client2.UnConfirm,
-	})
+	go func() {
+		err := client.Notice(client2.NoticeContent{
+			Content:     reportStr,
+			OriginData:  resp,
+			Time:        time.Now(),
+			ConfirmStat: client2.UnConfirm,
+		})
+		if err != nil {
+			log.Printf("AgentsTask Notice err: %v\n", err)
+		}
+	}()
 
 	//6.2 将ai结果发送给Alert
 	return alerter.GetAlert(t.AlertID.Identity()).Send(*buildAiAlertContent(t, reportStr))
-
 }
 
 func (t *AgentTask) GetCron() config.CronTab {

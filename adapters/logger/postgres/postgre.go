@@ -98,23 +98,23 @@ func (l LogPostgre) ReadLog(filter config.LogFilter) ([]logger.LogContent, error
 		query = query.Where("task_name IN ?", taskNames)
 	}
 
-	// DBIDs 过滤
-	if len(filter.DBIDs) > 0 {
-		dbNames := make([]string, 0, len(filter.DBIDs))
-		for _, db := range filter.DBIDs {
+	// DBNames 过滤
+	if len(filter.DBNames) > 0 {
+		dbNames := make([]string, 0, len(filter.DBNames))
+		for _, db := range filter.DBNames {
 			dbNames = append(dbNames, db.Name)
 		}
 		query = query.Where("db_name IN ?", dbNames)
 	}
 
-	// TaskIDs 过滤
-	if len(filter.TaskIDs) > 0 {
-		taskIDs := make([]string, 0, len(filter.TaskIDs))
-		for _, tid := range filter.TaskIDs {
-			taskIDs = append(taskIDs, tid.Name)
-		}
-		query = query.Where("task_id IN ?", taskIDs)
-	}
+	//// TaskIDs 过滤
+	//if len(filter.TaskIDs) > 0 {
+	//	taskIDs := make([]string, 0, len(filter.TaskIDs))
+	//	for _, tid := range filter.TaskIDs {
+	//		taskIDs = append(taskIDs, tid.Name)
+	//	}
+	//	query = query.Where("task_id IN ?", taskIDs)
+	//}
 
 	// InspNames 过滤
 	if len(filter.InspNames) > 0 {

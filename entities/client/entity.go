@@ -52,6 +52,7 @@ const (
 type NoticeContent struct {
 	ID          int
 	Content     string
+	OriginData  []byte `gorm:"type:jsonb"`
 	Time        time.Time
 	ConfirmStat string
 	UpdatedAt   time.Time
@@ -61,6 +62,7 @@ type NoticeContent struct {
 type NoticeDB interface {
 	Init(utils.Option) error
 	Get(page, pageSize int) ([]NoticeContent, error)
+	GetByID(id int) (*NoticeContent, error)
 	Create(NoticeContent) error
 	Update(NoticeContent) error
 }

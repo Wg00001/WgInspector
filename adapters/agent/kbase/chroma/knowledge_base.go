@@ -11,6 +11,7 @@ import (
 	"github.com/amikos-tech/chroma-go/openai"
 	"github.com/amikos-tech/chroma-go/pkg/embeddings/ollama"
 	"github.com/amikos-tech/chroma-go/types"
+	"log"
 )
 
 /**
@@ -77,7 +78,7 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 		}
 	default:
 	}
-
+	log.Printf("Use KBase: %v\n", k)
 	return k, nil
 }
 

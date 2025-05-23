@@ -42,6 +42,7 @@ func (p *PgSQLNoticeDB) Init(option utils.Option) error {
 	CREATE TABLE IF NOT EXISTS notice_contents (
 		id SERIAL PRIMARY KEY,
 		content TEXT NOT NULL,
+		origin_data JSONB NOT NULL DEFAULT '{}',
 		time TIMESTAMPTZ NOT NULL,
 		confirm_stat TEXT NOT NULL DEFAULT 'Unread' 
 			CHECK(confirm_stat IN ('Unread', 'Read', 'UnConfirm', 'Allow', 'NotAllow')),
@@ -106,6 +107,46 @@ func (p *PgSQLNoticeDB) Get(page, pageSize int) ([]client.NoticeContent, error) 
 	return contents, nil
 }
 
+func (p *PgSQLNoticeDB) GetByID(id int) (*client.NoticeContent, error) {
+	// SQL查询语句（包含所有需要的字段）
+	query := `
+        SELECT 
+            id,
+            content,
+            origin_data,
+            time,
+            confirm_stat,
+            updated_at,
+            updated_by
+        FROM notice_contents 
+        WHERE id = $1`
+
+	// 执行查询
+	row := p.db.QueryRow(query, id)
+
+	var notice client.NoticeContent
+
+	// 扫描结果到结构体（注意字段顺序必须与SELECT顺序一致）
+	err := row.Scan(
+		&notice.ID,
+		&notice.Content,
+		&notice.OriginData,
+		&notice.Time,
+		&notice.ConfirmStat,
+		&notice.UpdatedAt,
+		&notice.UpdatedBy,
+	)
+
+	// 错误处理
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("notice with ID %d not found", id)
+		}
+		return nil, fmt.Errorf("database query error: %w", err)
+	}
+	return &notice, nil
+}
+
 // Create adds a new notice. 'creator' specifies who is creating this notice.
 func (p *PgSQLNoticeDB) Create(notice client.NoticeContent) error {
 	if notice.ConfirmStat == "" {
@@ -118,8 +159,8 @@ func (p *PgSQLNoticeDB) Create(notice client.NoticeContent) error {
 	now := time.Now()
 	// created_by and updated_by will use the table's DEFAULT 'system'
 	insertSQL := `
-	INSERT INTO notice_contents (content, time, confirm_stat, created_at, updated_at) 
-	VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	INSERT INTO notice_contents (content , time, confirm_stat, created_at, updated_at, origin_data) 
+	VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	var insertedID int // Not used further as client.NoticeContent from interface has ID but it's for input to Update
 	err := p.db.QueryRow(insertSQL,
@@ -128,6 +169,7 @@ func (p *PgSQLNoticeDB) Create(notice client.NoticeContent) error {
 		notice.ConfirmStat,
 		now, // created_at
 		now, // updated_at
+		notice.OriginData,
 	).Scan(&insertedID)
 
 	if err != nil {
@@ -148,11 +190,10 @@ func (p *PgSQLNoticeDB) Update(notice client.NoticeContent) error {
 	// updated_by will use the table's DEFAULT 'system'
 	updateSQL := `
 	UPDATE notice_contents 
-	SET content = $1, time = $2, confirm_stat = $3, updated_at = $4
-	WHERE id = $5`
+	SET time = $1, confirm_stat = $2, updated_at = $3
+	WHERE id = $4`
 
 	result, err := p.db.Exec(updateSQL,
-		notice.Content,
 		notice.Time,
 		notice.ConfirmStat,
 		now, // updated_at

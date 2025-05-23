@@ -205,12 +205,6 @@ func Save(key Key, val config.Id) (err error) {
 	if err != nil {
 		return err
 	}
-	if key.ConfigType == config.TypeInspector {
-		err = updateConfigRoots(val)
-		if err != nil {
-			return err
-		}
-	}
 	return syncWithDB(key.ConfigType)
 }
 
@@ -222,7 +216,6 @@ func Del(key Key, val config.Id) error {
 		return err
 	}
 	delete(index, key)
-	inspIndex = config.NewInspIndex(Meta.InspNodes)
 	return syncWithDB(key.ConfigType)
 }
 

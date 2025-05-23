@@ -100,9 +100,9 @@ type LogFilter struct {
 	StartTime time.Time
 	EndTime   time.Time
 	TaskNames IdKeyArray // Id 匹配列表
-	DBIDs     IdKeyArray // DBName 匹配列表
+	DBNames   IdKeyArray // DBName 匹配列表
 	InspNames IdKeyArray // Insp匹配列表
-	TaskIDs   IdKeyArray // TaskID 匹配列表
+	//TaskIDs   IdKeyArray // TaskID 匹配列表
 }
 
 type KnowledgeBaseConfig struct {

@@ -106,6 +106,10 @@ func (s *SQLiteNoticeDB) Get(page, pageSize int) ([]client.NoticeContent, error)
 	return contents, nil
 }
 
+func (s *SQLiteNoticeDB) GetByID(id int) (*client.NoticeContent, error) {
+	return nil, nil
+}
+
 func (s *SQLiteNoticeDB) Create(content client.NoticeContent) error {
 	// 设置默认状态
 	if content.ConfirmStat == "" {

@@ -95,6 +95,13 @@ func GetNotice(page, pageSize int) ([]client.NoticeContent, error) {
 	return noticeDB.Get(page, pageSize)
 }
 
+func GetNoticeByID(id int) (*client.NoticeContent, error) {
+	if !registed {
+		return nil, fmt.Errorf("notice didn't registed")
+	}
+	return noticeDB.GetByID(id)
+}
+
 func CreateNotice(ctn client.NoticeContent) error {
 	if !registed {
 		return fmt.Errorf("notice didn't registed")

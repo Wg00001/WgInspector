@@ -331,7 +331,11 @@ func handleNoticeConfirm(conn *websocket.Conn, msg RequestMsg, user client.User)
 	}
 	temp.UpdatedBy = user.UserName
 	if msg.Confirm {
-		err = agent.KBaseSave(temp.Content)
+		notice, err := client2.GetNoticeByID(temp.ID)
+		if err != nil {
+			return err
+		}
+		err = agent.KBaseSave(notice.OriginData)
 		if err != nil {
 			response(conn, msg.MsgMeta, err)
 			return err

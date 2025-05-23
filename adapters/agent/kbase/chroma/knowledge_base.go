@@ -25,12 +25,13 @@ func init() {
 }
 
 type KBaseChroma struct {
-	Config     config.KnowledgeBaseConfig
-	Path       string
-	Collection string //chroma的collection类似于库
-	Tenant     string //chroma需要指定租户
-	Database   string
-	Efunc      types.EmbeddingFunction //进行向量计算的函数
+	Config          config.KnowledgeBaseConfig
+	Path            string
+	Collection      string //chroma的collection类似于库
+	Tenant          string //chroma需要指定租户
+	Database        string
+	EmbeddingDriver string
+	Efunc           types.EmbeddingFunction //进行向量计算的函数
 }
 
 var _ agent.KnowledgeBase = (*KBaseChroma)(nil)
@@ -46,23 +47,34 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 	k.Collection = cfg.Option.GetOrDefault("collection", "default")
 	k.Tenant = cfg.Option.GetOrDefault("tenant", "default")
 	k.Database = cfg.Option.GetOrDefault("database", "default")
+	k.EmbeddingDriver = cfg.Option.GetOrDefault("embedding", "feishu")
 
-	agentConfig, err := config2.GetWithType[config.AgentConfig](config2.Key{
-		ConfigType: config.TypeAgent,
-		Identity:   k.Config.AgentID.Identity(),
-	})
 	if err != nil {
 		return
 	}
-	switch agentConfig.Driver {
+	switch k.EmbeddingDriver {
 	case "ollama":
+		agentConfig, err := config2.GetWithType[config.AgentConfig](config2.Key{
+			ConfigType: config.TypeAgent,
+			Identity:   k.Config.AgentID.Identity(),
+		})
+		if err != nil {
+			return nil, err
+		}
 		k.Efunc, err = ollama.NewOllamaEmbeddingFunction(
 			ollama.WithBaseURL(agentConfig.Url),
 			ollama.WithModel(agentConfig.Model))
 		if err != nil {
-			return
+			return nil, err
 		}
 	case "openai":
+		agentConfig, err := config2.GetWithType[config.AgentConfig](config2.Key{
+			ConfigType: config.TypeAgent,
+			Identity:   k.Config.AgentID.Identity(),
+		})
+		if err != nil {
+			return nil, err
+		}
 		k.Efunc, err = openai.NewOpenAIEmbeddingFunction(
 			agentConfig.ApiKey,
 			func(c *openai.OpenAIClient) error {
@@ -76,13 +88,20 @@ func (k KBaseChroma) Init(cfg config.KnowledgeBaseConfig) (_ agent.KnowledgeBase
 		if err != nil {
 			return k, fmt.Errorf("agent - kbase: chroma Error creating OpenAI embedding function: %v\n", err)
 		}
+	case "feishu":
+		k.Efunc = NewWithModel("Bearer 27fbb257-c8e7-452b-810d-2ee0baccf4fc")
 	default:
 	}
 	log.Printf("Use KBase: %v\n", k)
 	return k, nil
 }
 
-func (k KBaseChroma) WriteIn(docs []agent.Document) error {
+func (k KBaseChroma) WriteIn(docs []agent.Document) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("kbase: chroma WriteIn fail - panic: %s\n", r)
+		}
+	}()
 	if docs == nil || len(docs) == 0 {
 		return fmt.Errorf("agent - kbase: chroma write in fail: can't write nil document")
 	}

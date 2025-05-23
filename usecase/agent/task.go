@@ -92,7 +92,7 @@ func (t *AgentTask) Do(context.Context) error {
 	go func() {
 		err := client.Notice(client2.NoticeContent{
 			Content:     reportStr,
-			OriginData:  resp,
+			OriginData:  resp[l : r+1],
 			Time:        time.Now(),
 			ConfirmStat: client2.UnConfirm,
 		})

@@ -397,12 +397,22 @@ func handleTaskDo(conn *websocket.Conn, msg RequestMsg) error {
 	var uuid string
 	err := json.Unmarshal(msg.ConfigData, &uuid)
 	if err != nil {
-		response(conn, msg.MsgMeta, err)
+		conn.WriteJSON(ResponseMsg{
+			MsgMeta:    msg.MsgMeta,
+			Success:    false,
+			Message:    err.Error(),
+			ConfigData: uuid,
+		})
 		return err
 	}
 	err = cron.DoNow(uuid)
 	if err != nil {
-		response(conn, msg.MsgMeta, err)
+		conn.WriteJSON(ResponseMsg{
+			MsgMeta:    msg.MsgMeta,
+			Success:    false,
+			Message:    err.Error(),
+			ConfigData: uuid,
+		})
 		return err
 	}
 	return response(conn, msg.MsgMeta, uuid)

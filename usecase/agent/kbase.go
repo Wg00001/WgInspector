@@ -16,15 +16,12 @@ import (
 // KBaseSave 保存到知识库中。
 // 用户收到消息后，对知识库入库消息进行确认，对于确认入库的消息使用此函数入库
 func KBaseSave(msg string) error {
-	//todo:置信度评估
-	//todo: 对比去重
-
 	//人工审核已通过
 	//1. 关键词提取
 	var report AnalysisReport
 	err := json.Unmarshal([]byte(msg), &report)
 	if err != nil {
-		return fmt.Errorf("Kbase save fail: %s\n", err)
+		return fmt.Errorf("Kbase save fail: 格式不符合JSON %s\n", err)
 	}
 
 	//2. 格式转换

@@ -49,12 +49,12 @@ func (t *Task) Do(ctx context.Context) error {
 		inspect *config.InspConfig
 		db      *config.DBConfig
 	}, workerCount)
-	errChan := make(chan error, len(tp.inspNodes)*len(tp.targetDBs)*2)
+	errChan := make(chan error, len(tp.inspNodes)*len(tp.targetDBs)*2+24)
+	contentChan := make(chan logger.LogContent, len(tp.inspNodes)*len(tp.targetDBs)+8)
 	var wgroup sync.WaitGroup
 
 	// 提取公共配置
 	taskName := t.Config.Identity
-	logID := t.Config.LogID
 	alertID := t.Config.AlertID
 
 	dbList, err := db.ConnList(t.Config.TargetDB)
@@ -104,16 +104,13 @@ func (t *Task) Do(ctx context.Context) error {
 					continue
 				}
 
-				// 记录日志
-				if err := logger2.Get(logID.Identity()).Log(logger.LogContent{
+				contentChan <- logger.LogContent{
 					Timestamp:   time.Now(),
 					TaskName:    taskName.Name,
 					TaskID:      taskId,
 					InspectName: job.inspect.Identity.Name,
 					DBName:      job.db.Identity.Name,
 					Result:      result.MarshallJSON(),
-				}); err != nil {
-					errChan <- fmt.Errorf("logging failed: %w", err)
 				}
 
 				// 发送告警
@@ -154,18 +151,31 @@ func (t *Task) Do(ctx context.Context) error {
 		}
 	}()
 
-	// 等待所有工作完成
+	logConents := make([]logger.LogContent, 0, len(dbList)*len(tp.targetDBs))
 	go func() {
-		wgroup.Wait()
-		close(errChan)
+		for val := range contentChan {
+			logConents = append(logConents, val)
+		}
 	}()
 
 	// 收集错误
 	var errors []error
-	for err := range errChan {
-		errors = append(errors, err)
+	go func() {
+		for err := range errChan {
+			errors = append(errors, err)
+		}
+	}()
+	// 等待所有工作完成
+	wgroup.Wait()
+
+	//执行后续操作
+	close(contentChan)
+	err = logger2.Get(t.Config.LogID.Identity()).Log(logConents)
+	if err != nil {
+		errChan <- err
 	}
 
+	close(errChan)
 	if len(errors) > 0 {
 		// 发送错误告警
 		alerter2.GetAlert(alertID.Identity()).Send(alerter.Content{

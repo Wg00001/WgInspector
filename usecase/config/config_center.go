@@ -256,6 +256,7 @@ func syncWithDB(configType string) error {
 	case config.TypeInspector:
 		Meta.InspNodes = meta.InspNodes
 		AppendIndex(config.TypeInspector, Meta.InspNodes...)
+		inspIndex = config.NewInspIndex(Meta.InspNodes)
 	default:
 		return fmt.Errorf("unsupported config type: %s", configType)
 	}

@@ -61,20 +61,16 @@ func (l LogPostgre) GetID() config.Identity {
 	return l.LogConfig.Identity
 }
 
-func (l LogPostgre) Log(res logger.LogContent) error {
+func (l LogPostgre) Log(res []logger.LogContent) error {
 	// 确认连接和表名
 	if l.conn == nil {
 		return fmt.Errorf("Database connection not initialized")
-	}
-	if res.Result == nil {
-		res.Result = []byte{}
 	}
 	// 插入记录
 	result := l.conn.Create(&res)
 	if result.Error != nil {
 		return fmt.Errorf("Failed to insert log data: %v", result.Error)
 	}
-
 	return nil
 }
 

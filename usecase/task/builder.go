@@ -48,7 +48,7 @@ func newTaskPlan(taskCfg config.TaskConfig) (res *taskPlan, err error) {
 			return &item
 		})
 	}
-	//添加todo列表的insp
+	//添加 to_do 列表的insp
 	for _, val := range taskCfg.Todo {
 		temp := config2.GetInsp(val.Identity)
 		if temp == nil {

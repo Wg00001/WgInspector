@@ -33,9 +33,11 @@ func (d LogDefault) GetID() config.Identity {
 	return config.Identity{}
 }
 
-func (d LogDefault) Log(l logger.LogContent) error {
+func (d LogDefault) Log(ls []logger.LogContent) error {
 	//utils.PrintQuery(l, rows)
-	log.Println(string(l.Result))
+	for _, l := range ls {
+		log.Println(string(l.Result))
+	}
 	return nil
 }
 
